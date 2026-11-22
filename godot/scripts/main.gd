@@ -45,6 +45,8 @@ var quest_stage := 0
 var collected_total := 0
 var has_spear := false
 var has_fishing_rod := false
+var sprinting := false
+var campfire_position := Vector3.ZERO
 var _saved_position := Vector3(0, 1.2, 9)
 var weather := "Ensolarado"
 var is_swimming := false
@@ -317,6 +319,9 @@ func _reset_progress() -> void:
 	cold_clothes = false
 	has_spear = false
 	has_fishing_rod = false
+	sprinting = false
+	campfire_position = Vector3.ZERO
+	shelter_position = Vector3.ZERO
 	_saved_position = Vector3(0, 1.2, 9)
 
 func _add_ocean() -> void:
@@ -413,6 +418,7 @@ func _build_hud() -> void:
 	_make_button(controls, "MOCHILA", Callable(self, "_toggle_inventory"), Vector2(112, 54))
 	_make_button(controls, "CRIAR", Callable(self, "_toggle_crafting"), Vector2(100, 54))
 	_make_button(controls, "MERGULHAR", Callable(self, "_toggle_dive"), Vector2(112, 54))
+	_make_button(controls, "CORRER", Callable(self, "_toggle_sprint"), Vector2(92, 54))
 	_make_button(controls, "PESCAR", Callable(self, "_fish"), Vector2(92, 54))
 	_make_button(controls, "SALVAR", Callable(self, "_save_game"), Vector2(92, 54))
 	_make_button(controls, "MISSÃO", Callable(self, "_show_quest"), Vector2(92, 54))
@@ -659,6 +665,14 @@ func _drink_water() -> void:
 	_refresh_panels()
 	_update_hud()
 
+func _toggle_sprint() -> void:
+	sprinting = not sprinting
+	if sprinting and stamina <= 5.0:
+		sprinting = false
+		_show_message("Você precisa descansar antes de correr.")
+	else:
+		_show_message("Corrida ativada." if sprinting else "Corrida desativada.")
+
 func _fish() -> void:
 	if not has_fishing_rod:
 		_show_message("Fabrique uma vara de pesca primeiro.")
@@ -791,6 +805,10 @@ func _process(delta: float) -> void:
 		weather = "Chuva" if day_number % 3 == 0 else "Ensolarado"
 		_respawn_resources()
 		_add_experience(5)
+	if sky_light:
+		sky_light.rotation_degrees.x = -90.0 + day_time * 15.0
+		sky_light.light_energy = 0.12 if int(day_time) < 6 or int(day_time) >= 20 else 1.15
+		sky_light.shadow_enabled = sky_light.light_energy > 0.5
 	survival_tick += delta
 	if survival_tick >= 1.0:
 		survival_tick = 0.0
@@ -813,6 +831,9 @@ func _physics_process(delta: float) -> void:
 	var direction := (camera_pivot.global_basis * Vector3(input_vector.x, 0, input_vector.y)).normalized()
 	if direction.length() > 0.01:
 		var speed := SWIM_SPEED if is_swimming else MOVE_SPEED
+		if sprinting and stamina > 0.0 and not is_swimming:
+			speed *= 1.65
+			stamina = maxf(0.0, stamina - 12.0 * delta)
 		player.velocity.x = direction.x * speed
 		player.velocity.z = direction.z * speed
 		if player_visual:
@@ -858,6 +879,8 @@ func _save_game() -> void:
 		"collected_total": collected_total, "has_shelter": has_shelter,
 		"has_campfire": has_campfire, "cold_clothes": cold_clothes,
 		"has_spear": has_spear, "has_fishing_rod": has_fishing_rod,
+		"shelter_position": [shelter_position.x, shelter_position.y, shelter_position.z],
+		"campfire_position": [campfire_position.x, campfire_position.y, campfire_position.z],
 		"player_position": [player.global_position.x, player.global_position.y, player.global_position.z]
 	}
 	var file := FileAccess.open("user://relaned_save.json", FileAccess.WRITE)
@@ -895,6 +918,12 @@ func _load_game() -> void:
 	cold_clothes = bool(data.get("cold_clothes", false))
 	has_spear = bool(data.get("has_spear", false))
 	has_fishing_rod = bool(data.get("has_fishing_rod", false))
+	var shelter_data: Array = data.get("shelter_position", [0.0, 0.0, 0.0])
+	if shelter_data.size() >= 3:
+		shelter_position = Vector3(float(shelter_data[0]), float(shelter_data[1]), float(shelter_data[2]))
+	var fire_data: Array = data.get("campfire_position", [0.0, 0.0, 0.0])
+	if fire_data.size() >= 3:
+		campfire_position = Vector3(float(fire_data[0]), float(fire_data[1]), float(fire_data[2]))
 	var pos: Array = data.get("player_position", [0.0, 1.2, 9.0])
 	if pos.size() >= 3:
 		_saved_position = Vector3(float(pos[0]), float(pos[1]), float(pos[2]))
@@ -940,7 +969,10 @@ func _respawn_resources() -> void:
 func _update_survival() -> void:
 	hunger = maxf(0.0, hunger - 0.035)
 	thirst = maxf(0.0, thirst - 0.06)
-	stamina = minf(100.0, stamina + 0.35)
+	if not sprinting:
+		stamina = minf(100.0, stamina + 1.8)
+	if stamina <= 0.0:
+		sprinting = false
 	var hour := int(day_time)
 	var night := hour < 6 or hour >= 19
 	var target_temp := 36.8
