@@ -15,7 +15,6 @@ Saved/
 *.VC.opendb
 
 # Unreal build outputs and local caches
-Build/
 *.log
 *.tmp
 *.bak
