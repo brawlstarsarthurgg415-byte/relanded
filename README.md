@@ -1,86 +1,28 @@
 # RELANDED
 
-Projeto de jogo de sobrevivência 3D em mundo aberto, preparado como projeto **C++ para Unreal Engine 5**.
+Jogo de sobrevivência 3D para Android. **Engine principal: Godot 4.5.1 (GDScript).**
 
-> A estrutura inicial Unreal já foi adicionada. O jogo ainda está em fase de fundação: não há mapa jogável, personagens, modelos 3D, animações ou APK Unreal prontos. O projeto web/Capacitor antigo em `www/` foi preservado.
+## Por que Godot
+Godot é gratuito, open source, leve e exporta diretamente para Android. Ao contrário do projeto Unreal anterior, a compilação pode rodar em um runner Linux padrão do GitHub Actions, sem exigir um computador Windows com Unreal Engine instalado.
 
-## Visão do jogo
+## Projeto atual
+O projeto jogável está em `godot/`. A primeira fundação inclui:
+- cenário 3D de ilha tropical, oceano, árvores e destroços;
+- personagem 3D com câmera em terceira pessoa;
+- controles básicos de teclado e toque;
+- renderizador Compatibility para melhor alcance em celulares Android.
 
-- Sobrevivência e exploração em uma ilha tropical.
-- Perspectivas alternáveis: primeira pessoa, terceira pessoa e um modo experimental de câmera frontal.
-- Campanha principal planejada para pelo menos 2 horas de conteúdo jogável.
-- Coleta, crafting, construção, combate, veículos e eventos ambientais.
-- Cinco peças de avião como objetivo central da história.
+O objetivo é evoluir a partir dessa base para exploração, coleta, crafting, construção, eventos e a campanha de fuga da ilha.
 
-## Estrutura Unreal
+## Gerar APK
+O workflow **Build Relanded Android APK (Godot)** roda automaticamente quando arquivos em `godot/` mudam e também pode ser iniciado manualmente em GitHub Actions.
 
-```text
-Relanded/
-├── Relanded.uproject
-├── Config/
-├── Content/
-│   ├── Characters/
-│   ├── Environment/
-│   ├── Props/
-│   ├── Weapons/
-│   ├── Vehicles/
-│   ├── Animations/
-│   ├── Materials/
-│   ├── Audio/
-│   └── UI/
-├── Plugins/
-├── Source/
-│   ├── Relanded/
-│   ├── Relanded.Target.cs
-│   └── RelandedEditor.Target.cs
-└── .github/workflows/
-```
+1. Abra a aba **Actions** do repositório.
+2. Selecione **Build Relanded Android APK (Godot)**.
+3. Toque em **Run workflow**.
+4. Quando terminar, abra a execução e baixe o artefato **Relanded-Android-APK**.
 
-O módulo C++ inicial contém o ponto de entrada do jogo e uma classe GameMode básica. É apenas o esqueleto inicial, não a implementação dos sistemas de sobrevivência.
+O workflow instala Godot 4.5.1, templates Android, Java 17 e Android SDK no runner hospedado pelo GitHub. O APK só estará pronto depois que uma execução terminar com sucesso.
 
-## Abrir no Unreal Editor
-
-1. Baixe ou clone o repositório em um computador com Unreal Engine 5 instalada.
-2. Abra `Relanded.uproject` com a Unreal Engine instalada. Como a associação da versão está em branco, selecione a versão instalada quando o Launcher/Editor solicitar.
-3. Se solicitado, gere os arquivos do projeto C++ e compile o módulo `Relanded`.
-4. Abra o projeto no Editor.
-
-A estrutura C++ foi escrita para a linha Unreal Engine 5.5 ou mais recente. Se estiver usando uma versão diferente, os arquivos Target.cs podem precisar de ajuste.
-
-## Verificação automática
-
-O workflow **Unreal project structure check** valida o JSON do `.uproject` e a presença dos arquivos essenciais do módulo C++. Ele não compila o jogo nem substitui o Unreal Build Tool.
-
-## Git LFS
-
-Assets binários grandes do Unreal (por exemplo `.uasset`, `.umap`, modelos e áudio) devem ser versionados com Git LFS. Depois de instalar Git LFS, execute:
-
-```bash
-git lfs install
-git lfs pull
-```
-
-Confira a cota e o armazenamento LFS disponíveis na conta GitHub antes de enviar muitos assets.
-
-## Compilação Android
-
-Consulte [CLOUD_BUILD.md](CLOUD_BUILD.md) para preparar uma máquina Windows na nuvem e conectar um runner dedicado do GitHub Actions. O workflow manual **Build Relanded for Android (cloud runner)** já está no repositório, mas só executará quando esse runner estiver online.
-
-
-O GitHub Actions padrão não inclui Unreal Engine 5 pré-instalada. A compilação automatizada do jogo exigirá um runner Windows self-hosted com uma versão compatível da Unreal Engine, Android SDK/NDK e configuração de build Android.
-
-**Ainda não existe APK Unreal compilado.** O workflow antigo de APK pertence à versão web empacotada com Capacitor e não compila o projeto Unreal.
-
-## Estado atual
-
-- [x] Repositório existente preservado.
-- [x] Regras iniciais de Git ignore e Git LFS adicionadas.
-- [x] Descritor `.uproject` e módulo C++ inicial adicionados.
-- [x] Workflow de validação estrutural adicionado.
-- [ ] Abrir e compilar o projeto no Unreal Editor.
-- [ ] Criar o mapa inicial e os sistemas jogáveis.
-- [ ] Integrar assets 3D com licenças compatíveis.
-- [ ] Configurar e validar a compilação Android.
-- [ ] Compilar e testar o primeiro APK em dispositivo.
-
-Recursos como ray tracing e frame generation dependerão do hardware e das APIs suportadas. O projeto deverá oferecer configurações alternativas para Android sem suporte a esses recursos.
+## Projeto Unreal antigo
+Os arquivos Unreal anteriores foram mantidos como referência, mas não são mais a engine principal nem são usados pelo workflow Android.
