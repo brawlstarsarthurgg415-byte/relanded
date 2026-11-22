@@ -3,7 +3,7 @@ extends Node3D
 const MOVE_SPEED := 5.2
 const SWIM_SPEED := 2.8
 const LOOK_SENSITIVITY := 0.0045
-const WORLD_RADIUS := 22.5
+const WORLD_RADIUS := 32.0
 const ASSET := "res://models/"
 
 class IslandMiniMap extends Control:
@@ -12,7 +12,7 @@ class IslandMiniMap extends Control:
 		var rect := Rect2(Vector2.ZERO, size)
 		draw_rect(rect, Color(0.025, 0.12, 0.17, 0.96), true)
 		var center := size * 0.5
-		var scale_factor := minf(size.x, size.y) / 53.0
+		var scale_factor := minf(size.x, size.y) / 73.0
 		draw_circle(center, 23.0 * scale_factor, Color(0.12, 0.34, 0.27))
 		draw_circle(center, 20.0 * scale_factor, Color(0.25, 0.48, 0.30))
 		draw_arc(center, 20.8 * scale_factor, 0.0, TAU, 64, Color(0.91, 0.78, 0.52), 2.0)
@@ -292,26 +292,34 @@ func _build_world() -> void:
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
 	env.ambient_light_energy = 0.8
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	env.fog_enabled = true
+	env.fog_light_color = Color(0.56, 0.68, 0.66)
+	env.fog_density = 0.0022
+	env.fog_sky_affect = 0.35
 	world_environment.environment = env
 	add_child(world_environment)
 	sky_light = DirectionalLight3D.new()
 	sky_light.rotation_degrees = Vector3(-42, -28, 0)
-	sky_light.light_energy = 1.15
+	sky_light.light_energy = 1.25
 	sky_light.shadow_enabled = true
+	sky_light.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
+	sky_light.directional_shadow_max_distance = 75.0
 	add_child(sky_light)
 	_add_ocean()
 	island_root = Node3D.new()
 	island_root.name = "DownloadedIslandEnvironment"
 	add_child(island_root)
-	for gx in range(-5, 6):
-		for gz in range(-5, 6):
+	for gx in range(-8, 9):
+		for gz in range(-8, 9):
 			var tile_center := Vector2(float(gx) * 4.0, float(gz) * 4.0)
-			if tile_center.length() <= 21.0:
+			if tile_center.length() <= 30.0:
 				_spawn_model("sand_tile.glb", Vector3(tile_center.x, -0.05, tile_center.y), Vector3.ONE, island_root)
-	_spawn_model("wet_sand_tile.glb", Vector3(0, -0.04, 20), Vector3.ONE, island_root)
-	_spawn_model("wet_sand_tile.glb", Vector3(0, -0.04, -20), Vector3.ONE, island_root)
-	_spawn_model("wet_sand_tile.glb", Vector3(20, -0.04, 0), Vector3.ONE, island_root)
-	_spawn_model("wet_sand_tile.glb", Vector3(-20, -0.04, 0), Vector3.ONE, island_root)
+	for shore_index in range(16):
+		var shore_angle := TAU * float(shore_index) / 16.0
+		var shore_pos := Vector3(cos(shore_angle) * 29.5, -0.04, sin(shore_angle) * 29.5)
+		var shore_tile := _spawn_model("wet_sand_tile.glb", shore_pos, Vector3.ONE, island_root)
+		if shore_tile:
+			shore_tile.rotation.y = shore_angle
 	_spawn_model("palm_tall.glb", Vector3(-13, 0, -8), Vector3(1.8, 1.8, 1.8), island_root)
 	_spawn_model("palm_tall.glb", Vector3(15, 0, -10), Vector3(1.5, 1.5, 1.5), island_root)
 	_spawn_model("palm_leaning.glb", Vector3(-17, 0, 9), Vector3(1.5, 1.5, 1.5), island_root)
@@ -326,7 +334,8 @@ func _build_world() -> void:
 	_spawn_model("tree_fern.glb", Vector3(-4, 0, -17), Vector3(1.0, 1.0, 1.0), island_root)
 	_spawn_model("thick_bamboo.glb", Vector3(7, 0, -19), Vector3(1.0, 1.0, 1.0), island_root)
 	_spawn_model("banana_clump.glb", Vector3(-8, 0, -18), Vector3(1.0, 1.0, 1.0), island_root)
-	_spawn_model("beach_dune.glb", Vector3(0, 0, 21), Vector3(1.0, 1.0, 1.0), island_root)
+	_spawn_model("beach_dune.glb", Vector3(0, 0, 27), Vector3(1.2, 1.2, 1.2), island_root)
+	_populate_jungle()
 	_add_ground_collision()
 	_add_interactable("spring", "Fonte de água", Vector3(-11, 1.0, -13))
 	_add_interactable("coconut", "Coqueiro", Vector3(-13, 1.0, -8))
@@ -370,15 +379,68 @@ func _add_ocean() -> void:
 	var ocean := MeshInstance3D.new()
 	var plane := PlaneMesh.new()
 	plane.size = Vector2(240, 240)
+	plane.subdivide_width = 64
+	plane.subdivide_depth = 64
 	ocean.mesh = plane
 	ocean.position.y = -2.3
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.025, 0.24, 0.36, 0.92)
-	mat.metallic = 0.18
-	mat.roughness = 0.22
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	ocean.material_override = mat
+	var water_shader := Shader.new()
+	water_shader.code = """
+shader_type spatial;
+render_mode cull_back, diffuse_burley, specular_schlick_ggx;
+uniform vec4 deep_water : source_color = vec4(0.012, 0.105, 0.17, 1.0);
+uniform vec4 shallow_water : source_color = vec4(0.035, 0.34, 0.39, 1.0);
+varying vec3 local_pos;
+void vertex() {
+	local_pos = VERTEX;
+	VERTEX.y += sin((VERTEX.x + TIME * 1.25) * 0.16) * 0.10 + cos((VERTEX.z - TIME * 0.85) * 0.19) * 0.07;
+}
+void fragment() {
+	float bands = sin(local_pos.x * 0.035 + TIME * 0.18) * cos(local_pos.z * 0.04 - TIME * 0.13);
+	ALBEDO = mix(deep_water.rgb, shallow_water.rgb, clamp(0.38 + bands * 0.18, 0.0, 1.0));
+	METALLIC = 0.24;
+	ROUGHNESS = 0.17;
+	SPECULAR = 0.82;
+}
+"""
+	var water_material := ShaderMaterial.new()
+	water_material.shader = water_shader
+	ocean.material_override = water_material
+	ocean.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(ocean)
+
+
+func _populate_jungle() -> void:
+	# Dense clusters of downloaded GLB flora create a layered tropical canopy.
+	var flora := ["tree_fern.glb", "thick_bamboo.glb", "banana_clump.glb", "palm_tall.glb", "palm_leaning.glb"]
+	for index in range(38):
+		var angle := float(index) * 2.399963
+		var radius := 10.0 + float((index * 7) % 18)
+		var pos := Vector3(cos(angle) * radius, 0.0, sin(angle) * radius)
+		if Vector2(pos.x - 13.0, pos.z - 12.0).length() < 5.0:
+			continue
+		var model_name: String = flora[index % flora.size()]
+		var size_factor := 0.78 + float(index % 5) * 0.12
+		var plant := _spawn_model(model_name, pos, Vector3.ONE * size_factor, island_root)
+		if plant:
+			plant.rotation.y = angle * 1.7
+	var rock_material := StandardMaterial3D.new()
+	rock_material.albedo_color = Color(0.22, 0.27, 0.25)
+	rock_material.roughness = 0.94
+	for index in range(22):
+		var angle := TAU * float(index) / 22.0
+		var radius := 25.0 + float(index % 3) * 1.1
+		var rock := MeshInstance3D.new()
+		var rock_mesh := SphereMesh.new()
+		rock_mesh.radius = 1.0
+		rock_mesh.height = 2.0
+		rock_mesh.radial_segments = 10
+		rock_mesh.rings = 6
+		rock.mesh = rock_mesh
+		rock.material_override = rock_material
+		rock.position = Vector3(cos(angle) * radius, -0.05 + float(index % 2) * 0.18, sin(angle) * radius)
+		rock.scale = Vector3(1.2 + float(index % 3) * 0.35, 0.8 + float(index % 4) * 0.22, 1.0 + float(index % 2) * 0.4)
+		rock.rotation.y = angle
+		island_root.add_child(rock)
 
 func _add_ground_collision() -> void:
 	var ground := StaticBody3D.new()
@@ -438,7 +500,7 @@ func _build_player() -> void:
 	camera_pivot.position.y = 1.4
 	player.add_child(camera_pivot)
 	camera = Camera3D.new()
-	camera.position = Vector3(0, 2.1, 5.4)
+	camera.position = Vector3(0, 2.35, 6.2)
 	player.position = _saved_position
 	camera.rotation_degrees.x = -12
 	camera.current = true
