@@ -10,7 +10,7 @@ Projeto Godot 4.5.1, renderizador Compatibility, exportação Android ARM64.
 - Ciclo de dia/noite com iluminação solar dinâmica e alternância de clima.
 - Exploração e coleta de água, cocos, madeira, fibras, ervas, conchas, pedras e sucata.
 - Mochila com limite de carga, evolução de nível e experiência.
-- Fabricação de abrigo, fogueira, roupa térmica, ataduras, lança, vara de pesca e mochila ampliada.
+- Fabricação de abrigo, fogueira, roupa térmica, ataduras, vara de pesca e mochila ampliada.
 - Pesca na costa, cozinha quando há fogueira e recuperação de necessidades com comida/água.
 - Diário com sequência de objetivos: suprimentos iniciais, abrigo e investigação dos destroços.
 - Recursos reaparecem com a passagem dos dias.
