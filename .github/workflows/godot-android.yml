@@ -53,9 +53,23 @@ jobs:
           curl -fL --retry 3 -o godot/models/driftwood.glb "https://cdn.3dassets.dev/assets/6837/v1/model.glb"
           curl -fL --retry 3 -o godot/models/spring.glb "https://cdn.3dassets.dev/assets/6860/v1/model.glb"
           curl -fL --retry 3 -o godot/models/lean_to.glb "https://cdn.3dassets.dev/assets/6858/v1/model.glb"
+          curl -fL --retry 3 -o godot/models/island_clearing.glb "https://cdn.3dassets.dev/assets/6866/v1/model.glb"
+          curl -fL --retry 3 -o godot/models/rocky_headland.glb "https://cdn.3dassets.dev/assets/6865/v1/model.glb"
+          curl -fL --retry 3 -o godot/models/sea_cave.glb "https://cdn.3dassets.dev/assets/6855/v1/model.glb"
+          curl -fL --retry 3 -o godot/models/tree_fern.glb "https://cdn.3dassets.dev/assets/6827/v1/model.glb"
+          curl -fL --retry 3 -o godot/models/thick_bamboo.glb "https://cdn.3dassets.dev/assets/6828/v1/model.glb"
+          curl -fL --retry 3 -o godot/models/banana_clump.glb "https://cdn.3dassets.dev/assets/6822/v1/model.glb"
+          curl -fL --retry 3 -o godot/models/beach_dune.glb "https://cdn.3dassets.dev/assets/6830/v1/model.glb"
           curl -fL --retry 3 -o godot/models/hiker.glb "https://tevy.dev/models/hiker/v1/lod2.glb"
           test -s godot/models/island_lagoon.glb
           test -s godot/models/hiker.glb
+          test -s godot/models/island_clearing.glb
+          test -s godot/models/rocky_headland.glb
+          test -s godot/models/sea_cave.glb
+          test -s godot/models/tree_fern.glb
+          test -s godot/models/thick_bamboo.glb
+          test -s godot/models/banana_clump.glb
+          test -s godot/models/beach_dune.glb
           du -h godot/models/*.glb
 
       - name: Configure Godot Android paths
