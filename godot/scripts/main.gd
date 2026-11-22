@@ -454,8 +454,8 @@ func _build_hud() -> void:
 	top.add_child(hud_label)
 	minimap = IslandMiniMap.new()
 	minimap.game_root = self
-	minimap.position = Vector2(-166, 14)
 	minimap.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	minimap.position = Vector2(-166, 14)
 	minimap.size = Vector2(150, 150)
 	ui_root.add_child(minimap)
 	var controls := GridContainer.new()
@@ -501,7 +501,8 @@ func _toggle_inventory() -> void:
 		inventory_panel = null
 		return
 	inventory_panel = _panel(ui_root, Vector2(340, 0))
-	inventory_panel.position = Vector2(10, 176)
+	inventory_panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	inventory_panel.position = Vector2(-170, -190)
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 10)
 	inventory_panel.add_child(col)
