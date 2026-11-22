@@ -241,6 +241,8 @@ func _set_quality(index: int) -> void:
 		sky_light.shadow_enabled = index >= 2
 
 func _exit_game() -> void:
+	if game_active:
+		_save_game()
 	get_tree().quit()
 
 func _start_solo() -> void:
@@ -564,10 +566,11 @@ func _craft_shelter() -> void:
 		return
 	_pay_items(cost)
 	has_shelter = true
+	shelter_position = player.global_position + (-player.global_basis.z * 3.0)
 	_show_message("Abrigo fabricado. Você fica mais protegido durante a noite.")
 	_check_quest_progress()
 	if island_root:
-		_spawn_model("lean_to.glb", Vector3(3, 0, 4), Vector3(1.8, 1.8, 1.8), island_root)
+		_spawn_model("lean_to.glb", shelter_position, Vector3(1.8, 1.8, 1.8), island_root)
 
 func _craft_clothes() -> void:
 	var cost := {"Fibra": 4, "Ervas": 2}
@@ -770,6 +773,7 @@ func _show_message(text_value: String) -> void:
 		notification_time = 3.0
 
 func _pause_to_menu() -> void:
+	_save_game()
 	game_active = false
 	if multiplayer.multiplayer_peer:
 		multiplayer.multiplayer_peer = null
