@@ -87,6 +87,7 @@ var survival_tick := 0.0
 var sky_light: DirectionalLight3D
 var world_environment: WorldEnvironment
 var island_root: Node3D
+var rain_particles: GPUParticles3D
 
 func _ready() -> void:
 	_build_ui()
@@ -336,7 +337,9 @@ func _build_world() -> void:
 	_spawn_model("banana_clump.glb", Vector3(-8, 0, -18), Vector3(1.0, 1.0, 1.0), island_root)
 	_spawn_model("beach_dune.glb", Vector3(0, 0, 27), Vector3(1.2, 1.2, 1.2), island_root)
 	_populate_jungle()
+	_build_ruined_settlement()
 	_add_ground_collision()
+	_refresh_weather_effect()
 	_add_interactable("spring", "Fonte de água", Vector3(-11, 1.0, -13))
 	_add_interactable("coconut", "Coqueiro", Vector3(-13, 1.0, -8))
 	_add_interactable("wood", "Madeira à deriva", Vector3(9, 1.0, 16))
@@ -441,6 +444,88 @@ func _populate_jungle() -> void:
 		rock.scale = Vector3(1.2 + float(index % 3) * 0.35, 0.8 + float(index % 4) * 0.22, 1.0 + float(index % 2) * 0.4)
 		rock.rotation.y = angle
 		island_root.add_child(rock)
+
+
+func _build_ruined_settlement() -> void:
+	# Small abandoned coastal district built from lightweight procedural geometry.
+	var concrete := StandardMaterial3D.new()
+	concrete.albedo_color = Color(0.34, 0.37, 0.34)
+	concrete.roughness = 0.96
+	var dark_concrete := StandardMaterial3D.new()
+	dark_concrete.albedo_color = Color(0.19, 0.23, 0.22)
+	dark_concrete.roughness = 1.0
+	var rust := StandardMaterial3D.new()
+	rust.albedo_color = Color(0.34, 0.19, 0.12)
+	rust.metallic = 0.35
+	rust.roughness = 0.88
+	# Broken access road leading into the abandoned settlement.
+	for index in range(5):
+		_ruin_piece(island_root, Vector3(16.0, -0.02, -25.0 + float(index) * 3.0), Vector3(3.8, 0.18, 2.8), dark_concrete)
+	# Main house: a roofless shell with a doorway and broken side wall.
+	_ruin_piece(island_root, Vector3(19.0, 0.12, -17.0), Vector3(7.0, 0.25, 6.0), dark_concrete)
+	_ruin_piece(island_root, Vector3(19.0, 1.45, -20.0), Vector3(7.0, 2.9, 0.22), concrete)
+	_ruin_piece(island_root, Vector3(15.5, 1.45, -17.0), Vector3(0.22, 2.9, 6.0), concrete)
+	_ruin_piece(island_root, Vector3(22.5, 1.45, -17.0), Vector3(0.22, 2.9, 6.0), concrete)
+	_ruin_piece(island_root, Vector3(17.2, 2.2, -14.0), Vector3(3.4, 1.4, 0.22), concrete)
+	_ruin_piece(island_root, Vector3(21.5, 0.8, -14.0), Vector3(2.0, 1.6, 0.22), concrete)
+	# Collapsed outbuilding and a rusted metal awning.
+	_ruin_piece(island_root, Vector3(26.0, 0.08, -13.0), Vector3(5.0, 0.2, 4.5), dark_concrete)
+	_ruin_piece(island_root, Vector3(23.6, 1.0, -14.8), Vector3(0.2, 2.0, 1.8), concrete)
+	_ruin_piece(island_root, Vector3(28.4, 0.75, -11.2), Vector3(0.2, 1.5, 2.0), concrete)
+	_ruin_piece(island_root, Vector3(26.0, 2.0, -13.0), Vector3(5.5, 0.16, 2.6), rust)
+	# A small watch post on the ridge.
+	_ruin_piece(island_root, Vector3(8.0, 0.08, -27.0), Vector3(4.0, 0.2, 3.5), dark_concrete)
+	_ruin_piece(island_root, Vector3(6.2, 1.1, -27.0), Vector3(0.18, 2.2, 3.5), concrete)
+	_ruin_piece(island_root, Vector3(9.8, 1.1, -27.0), Vector3(0.18, 2.2, 3.5), concrete)
+	_ruin_piece(island_root, Vector3(8.0, 2.2, -27.0), Vector3(4.0, 0.18, 3.5), rust)
+	_add_interactable("rubble", "Entulho da cidade", Vector3(14.0, 1.0, -18.0))
+	_add_interactable("rubble", "Sucata abandonada", Vector3(25.0, 1.0, -8.0))
+	_add_interactable("rubble", "Caixa de ferramentas", Vector3(8.0, 1.0, -24.0))
+
+func _ruin_piece(parent: Node3D, piece_position: Vector3, piece_size: Vector3, material: Material) -> void:
+	var body := StaticBody3D.new()
+	body.position = piece_position
+	var mesh := MeshInstance3D.new()
+	var box := BoxMesh.new()
+	box.size = piece_size
+	mesh.mesh = box
+	mesh.material_override = material
+	body.add_child(mesh)
+	var collision := CollisionShape3D.new()
+	var shape := BoxShape3D.new()
+	shape.size = piece_size
+	collision.shape = shape
+	body.add_child(collision)
+	parent.add_child(body)
+
+func _refresh_weather_effect() -> void:
+	if rain_particles and is_instance_valid(rain_particles):
+		rain_particles.queue_free()
+		rain_particles = null
+	if weather != "Chuva":
+		return
+	var rain := GPUParticles3D.new()
+	rain.name = "RainWeather"
+	rain.amount = 260
+	rain.lifetime = 0.9
+	rain.preprocess = 0.6
+	rain.visibility_aabb = AABB(Vector3(-28, -16, -28), Vector3(56, 32, 56))
+	var process_material := ParticleProcessMaterial.new()
+	process_material.direction = Vector3(0.0, -1.0, 0.0)
+	process_material.spread = 3.0
+	process_material.initial_velocity_min = 22.0
+	process_material.initial_velocity_max = 29.0
+	process_material.gravity = Vector3(0.0, -9.8, 0.0)
+	rain.process_material = process_material
+	var streak := BoxMesh.new()
+	streak.size = Vector3(0.018, 0.42, 0.018)
+	var rain_material := StandardMaterial3D.new()
+	rain_material.albedo_color = Color(0.55, 0.72, 0.82, 0.72)
+	rain_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	streak.material = rain_material
+	rain.draw_pass_1 = streak
+	add_child(rain)
+	rain_particles = rain
 
 func _add_ground_collision() -> void:
 	var ground := StaticBody3D.new()
@@ -897,6 +982,10 @@ func _interact() -> void:
 		"shelter":
 			_add_item("Fibra", 1)
 			_show_message("Você encontrou fibras no abrigo.")
+		"rubble":
+			_add_item("Sucata", 2)
+			_add_item("Pedra", 1)
+			_show_message("Você vasculhou os prédios abandonados e encontrou materiais.")
 	nearest_interactable.queue_free()
 	interactables.erase(nearest_interactable)
 	nearest_interactable = null
@@ -966,8 +1055,11 @@ func _process(delta: float) -> void:
 		day_time = 0.0
 		day_number += 1
 		weather = "Chuva" if day_number % 3 == 0 else "Ensolarado"
+		_refresh_weather_effect()
 		_respawn_resources()
 		_add_experience(5)
+	if rain_particles and is_instance_valid(rain_particles) and player:
+		rain_particles.global_position = player.global_position + Vector3(0.0, 13.0, 0.0)
 	if sky_light:
 		sky_light.rotation_degrees.x = -90.0 + day_time * 15.0
 		sky_light.light_energy = 0.12 if int(day_time) < 6 or int(day_time) >= 20 else 1.15
@@ -1051,7 +1143,7 @@ func _save_game() -> void:
 		"campfire_position": [campfire_position.x, campfire_position.y, campfire_position.z],
 		"player_position": [player.global_position.x, player.global_position.y, player.global_position.z]
 	}
-	var file := FileAccess.open("user://relaned_save.json", FileAccess.WRITE)
+	var file := FileAccess.open("user://relanded_save.json", FileAccess.WRITE)
 	if file:
 		file.store_string(JSON.stringify(data))
 		_show_message("Jogo salvo neste aparelho.")
