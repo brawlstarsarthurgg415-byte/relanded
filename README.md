@@ -64,6 +64,9 @@ Confira a cota e o armazenamento LFS disponíveis na conta GitHub antes de envia
 
 ## Compilação Android
 
+Consulte [CLOUD_BUILD.md](CLOUD_BUILD.md) para preparar uma máquina Windows na nuvem e conectar um runner dedicado do GitHub Actions. O workflow manual **Build Relanded for Android (cloud runner)** já está no repositório, mas só executará quando esse runner estiver online.
+
+
 O GitHub Actions padrão não inclui Unreal Engine 5 pré-instalada. A compilação automatizada do jogo exigirá um runner Windows self-hosted com uma versão compatível da Unreal Engine, Android SDK/NDK e configuração de build Android.
 
 **Ainda não existe APK Unreal compilado.** O workflow antigo de APK pertence à versão web empacotada com Capacitor e não compila o projeto Unreal.
