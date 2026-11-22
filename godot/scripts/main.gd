@@ -43,7 +43,6 @@ var experience := 0
 var player_level := 1
 var quest_stage := 0
 var collected_total := 0
-var has_spear := false
 var has_fishing_rod := false
 var sprinting := false
 var campfire_position := Vector3.ZERO
@@ -287,6 +286,13 @@ func _build_world() -> void:
 	_spawn_model("driftwood.glb", Vector3(9, 0.2, 16), Vector3(2.0, 2.0, 2.0), island_root)
 	_spawn_model("spring.glb", Vector3(-11, 0.1, -13), Vector3(1.7, 1.7, 1.7), island_root)
 	_spawn_model("lean_to.glb", Vector3(13, 0, 12), Vector3(1.8, 1.8, 1.8), island_root)
+	_spawn_model("island_clearing.glb", Vector3(0, 0, -16), Vector3(1.0, 1.0, 1.0), island_root)
+	_spawn_model("rocky_headland.glb", Vector3(22, 0, 2), Vector3(1.0, 1.0, 1.0), island_root)
+	_spawn_model("sea_cave.glb", Vector3(-23, 0, -2), Vector3(1.0, 1.0, 1.0), island_root)
+	_spawn_model("tree_fern.glb", Vector3(-4, 0, -17), Vector3(1.0, 1.0, 1.0), island_root)
+	_spawn_model("thick_bamboo.glb", Vector3(7, 0, -19), Vector3(1.0, 1.0, 1.0), island_root)
+	_spawn_model("banana_clump.glb", Vector3(-8, 0, -18), Vector3(1.0, 1.0, 1.0), island_root)
+	_spawn_model("beach_dune.glb", Vector3(0, 0, 21), Vector3(1.0, 1.0, 1.0), island_root)
 	_add_ground_collision()
 	_add_interactable("spring", "Fonte de água", Vector3(-11, 1.0, -13))
 	_add_interactable("coconut", "Coqueiro", Vector3(-13, 1.0, -8))
@@ -320,7 +326,6 @@ func _reset_progress() -> void:
 	has_shelter = false
 	has_campfire = false
 	cold_clothes = false
-	has_spear = false
 	has_fishing_rod = false
 	sprinting = false
 	campfire_position = Vector3.ZERO
@@ -481,7 +486,6 @@ func _toggle_crafting() -> void:
 	col.add_child(craft_label)
 	_make_button(col, "ABRIGO  •  5 madeira + 4 fibra", Callable(self, "_craft_shelter"), Vector2(300, 48))
 	_make_button(col, "ROUPA TÉRMICA  •  4 fibra + 2 ervas", Callable(self, "_craft_clothes"), Vector2(300, 48))
-	_make_button(col, "LANÇA  •  3 madeira + 2 pedra", Callable(self, "_craft_spear"), Vector2(300, 48))
 	_make_button(col, "VARA DE PESCA  •  3 madeira + 3 fibra", Callable(self, "_craft_rod"), Vector2(300, 48))
 	_make_button(col, "ATADURA  •  2 fibra + 1 erva", Callable(self, "_craft_bandage"), Vector2(300, 48))
 	_make_button(col, "FOGUEIRA  •  3 madeira + 2 fibra", Callable(self, "_craft_fire"), Vector2(300, 48))
@@ -580,19 +584,6 @@ func _craft_clothes() -> void:
 	_pay_items(cost)
 	cold_clothes = true
 	_show_message("Roupa térmica equipada. Sua temperatura fica mais estável.")
-
-func _craft_spear() -> void:
-	if has_spear:
-		_show_message("Você já possui uma lança.")
-		return
-	var cost := {"Madeira": 3, "Pedra": 2}
-	if not _has_items(cost):
-		_show_message("Colete madeira e pedras para fabricar a lança.")
-		return
-	_pay_items(cost)
-	has_spear = true
-	_add_experience(20)
-	_show_message("Lança fabricada.")
 
 func _craft_rod() -> void:
 	if has_fishing_rod:
@@ -890,7 +881,7 @@ func _save_game() -> void:
 		"experience": experience, "player_level": player_level, "quest_stage": quest_stage,
 		"collected_total": collected_total, "has_shelter": has_shelter,
 		"has_campfire": has_campfire, "cold_clothes": cold_clothes,
-		"has_spear": has_spear, "has_fishing_rod": has_fishing_rod,
+		"has_fishing_rod": has_fishing_rod,
 		"shelter_position": [shelter_position.x, shelter_position.y, shelter_position.z],
 		"campfire_position": [campfire_position.x, campfire_position.y, campfire_position.z],
 		"player_position": [player.global_position.x, player.global_position.y, player.global_position.z]
@@ -928,7 +919,6 @@ func _load_game() -> void:
 	has_shelter = bool(data.get("has_shelter", false))
 	has_campfire = bool(data.get("has_campfire", false))
 	cold_clothes = bool(data.get("cold_clothes", false))
-	has_spear = bool(data.get("has_spear", false))
 	has_fishing_rod = bool(data.get("has_fishing_rod", false))
 	var shelter_data: Array = data.get("shelter_position", [0.0, 0.0, 0.0])
 	if shelter_data.size() >= 3:
