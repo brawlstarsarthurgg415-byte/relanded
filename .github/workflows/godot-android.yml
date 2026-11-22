@@ -30,7 +30,6 @@ jobs:
       - name: Install Android build components
         run: |
           sdkmanager --install "platform-tools" "platforms;android-35" "build-tools;35.0.0" "ndk;28.1.13356709" "cmake;3.10.2.4988404"
-          yes | sdkmanager --licenses
 
       - name: Download Godot 4.5.1 and Android export templates
         run: |
