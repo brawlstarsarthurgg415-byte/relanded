@@ -28,5 +28,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Confirm runner
-        run: echo "Checkout and runner are working"
+      - name: Validate Unreal project descriptor
+        run: |
+          python3 - <<'PY'
+          import json
+          with open("Relanded.uproject", encoding="utf-8") as project_file:
+              project = json.load(project_file)
+          assert project["Modules"][0]["Name"] == "Relanded"
+          print("Unreal project descriptor: OK")
+          PY
