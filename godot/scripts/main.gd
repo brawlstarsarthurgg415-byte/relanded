@@ -860,7 +860,10 @@ func _physics_process(delta: float) -> void:
 
 func _continue_game() -> void:
 	if not FileAccess.file_exists("user://relanded_save.json"):
-		_show_message("Nenhum jogo salvo. Escolha NOVO JOGO.")
+		var dialog := AcceptDialog.new()
+		dialog.dialog_text = "Nenhum jogo salvo neste aparelho. Escolha NOVO JOGO para começar."
+		add_child(dialog)
+		dialog.popup_centered()
 		return
 	_load_game()
 	_clear_ui()
