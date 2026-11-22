@@ -4,7 +4,8 @@ The Android build workflow downloads the following original GLB assets into `god
 
 | In-game file | Source | Licence |
 |---|---|---|
-| island_lagoon.glb | 3DAssets.dev — Lagoon beach / Tropical Island and Palm Trees | CC0 1.0 |
+| sand_tile.glb | 3DAssets.dev — Island sand ripple tile | CC0 1.0 |
+| wet_sand_tile.glb | 3DAssets.dev — Wet shoreline sand tile | CC0 1.0 |
 | palm_tall.glb | 3DAssets.dev — Tall coconut palm | CC0 1.0 |
 | palm_leaning.glb | 3DAssets.dev — Leaning shore coconut palm | CC0 1.0 |
 | shells.glb | 3DAssets.dev — Beach shell scatter | CC0 1.0 |
@@ -23,6 +24,8 @@ The Android build workflow downloads the following original GLB assets into `god
 Sources:
 - https://3dassets.dev/packs/tropical-island-ecology
 - https://3dassets.dev/api/v1/packs/tropical-island-ecology
+- https://3dassets.dev/assets/tropical-island-ecology-sand-ripple-tile-0a88387c
+- https://3dassets.dev/assets/tropical-island-ecology-wet-sand-tile-15ca159e
 - https://3dassets.dev/assets/tropical-island-ecology-island-clearing-3910ceac
 - https://3dassets.dev/assets/tropical-island-ecology-rocky-headland-d7c23539
 - https://3dassets.dev/assets/tropical-island-ecology-sea-cave-mouth-f5e9ae8d
