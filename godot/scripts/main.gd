@@ -6,6 +6,29 @@ const LOOK_SENSITIVITY := 0.0045
 const WORLD_RADIUS := 22.5
 const ASSET := "res://models/"
 
+class IslandMiniMap extends Control:
+	var game_root: Node3D
+	func _draw() -> void:
+		var rect := Rect2(Vector2.ZERO, size)
+		draw_rect(rect, Color(0.025, 0.12, 0.17, 0.96), true)
+		var center := size * 0.5
+		var scale_factor := minf(size.x, size.y) / 53.0
+		draw_circle(center, 23.0 * scale_factor, Color(0.12, 0.34, 0.27))
+		draw_circle(center, 20.0 * scale_factor, Color(0.25, 0.48, 0.30))
+		draw_arc(center, 20.8 * scale_factor, 0.0, TAU, 64, Color(0.91, 0.78, 0.52), 2.0)
+		draw_line(center + Vector2(-5, 5) * scale_factor, center + Vector2(0, -4) * scale_factor, Color(0.78, 0.69, 0.48), 2.0)
+		draw_line(center + Vector2(0, -4) * scale_factor, center + Vector2(8, -7) * scale_factor, Color(0.78, 0.69, 0.48), 2.0)
+		for marker in [Vector3(-11, 0, -13), Vector3(19, 0, -2), Vector3(-23, 0, -2), Vector3(13, 0, 12)]:
+			var p := center + Vector2(marker.x, marker.z) * scale_factor
+			draw_circle(p, 3.0, Color(1.0, 0.78, 0.30))
+		if game_root != null and game_root.get("player") != null:
+			var actor = game_root.get("player")
+			var player_pos: Vector3 = actor.global_position
+			var p := center + Vector2(player_pos.x, player_pos.z) * scale_factor
+			draw_circle(p, 5.0, Color(1.0, 0.35, 0.25))
+			draw_arc(p, 7.0, 0.0, TAU, 24, Color.WHITE, 1.5)
+		draw_rect(rect, Color(0.52, 0.78, 0.66, 0.9), false, 2.0)
+
 var ui_layer: CanvasLayer
 var ui_root: Control
 var player: CharacterBody3D
@@ -17,6 +40,9 @@ var interaction_button: Button
 var message_label: Label
 var inventory_panel: PanelContainer
 var inventory_label: Label
+var inventory_title: Label
+var inventory_grid: GridContainer
+var minimap: Control
 var craft_panel: PanelContainer
 var craft_label: Label
 var menu_panel: PanelContainer
@@ -82,8 +108,8 @@ func _panel(parent: Control, min_size: Vector2 = Vector2.ZERO) -> PanelContainer
 	var p := PanelContainer.new()
 	p.custom_minimum_size = min_size
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.035, 0.065, 0.075, 0.94)
-	style.border_color = Color(0.30, 0.62, 0.52, 0.9)
+	style.bg_color = Color(0.025, 0.055, 0.065, 0.97)
+	style.border_color = Color(0.38, 0.72, 0.57, 0.95)
 	style.set_border_width_all(2)
 	style.set_corner_radius_all(14)
 	style.content_margin_left = 18
@@ -426,18 +452,32 @@ func _build_hud() -> void:
 	hud_label = Label.new()
 	hud_label.add_theme_font_size_override("font_size", 16)
 	top.add_child(hud_label)
-	var controls := HBoxContainer.new()
-	controls.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
-	controls.position = Vector2(-420, -82)
-	controls.size = Vector2(410, 64)
+	minimap = IslandMiniMap.new()
+	minimap.game_root = self
+	minimap.position = Vector2(-166, 14)
+	minimap.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	minimap.size = Vector2(150, 150)
+	ui_root.add_child(minimap)
+	var controls := GridContainer.new()
+	controls.columns = 4
+	controls.anchor_left = 0.0
+	controls.anchor_right = 1.0
+	controls.anchor_top = 1.0
+	controls.anchor_bottom = 1.0
+	controls.offset_left = 10
+	controls.offset_right = -10
+	controls.offset_top = -116
+	controls.offset_bottom = -8
+	controls.add_theme_constant_override("h_separation", 6)
+	controls.add_theme_constant_override("v_separation", 5)
 	ui_root.add_child(controls)
-	_make_button(controls, "MOCHILA", Callable(self, "_toggle_inventory"), Vector2(112, 54))
-	_make_button(controls, "CRIAR", Callable(self, "_toggle_crafting"), Vector2(100, 54))
-	_make_button(controls, "MERGULHAR", Callable(self, "_toggle_dive"), Vector2(112, 54))
-	_make_button(controls, "CORRER", Callable(self, "_toggle_sprint"), Vector2(92, 54))
-	_make_button(controls, "PESCAR", Callable(self, "_fish"), Vector2(92, 54))
-	_make_button(controls, "SALVAR", Callable(self, "_save_game"), Vector2(92, 54))
-	_make_button(controls, "MISSÃO", Callable(self, "_show_quest"), Vector2(92, 54))
+	_make_button(controls, "MOCHILA", Callable(self, "_toggle_inventory"), Vector2(82, 48))
+	_make_button(controls, "CRIAR", Callable(self, "_toggle_crafting"), Vector2(82, 48))
+	_make_button(controls, "MERGULHO", Callable(self, "_toggle_dive"), Vector2(82, 48))
+	_make_button(controls, "CORRER", Callable(self, "_toggle_sprint"), Vector2(82, 48))
+	_make_button(controls, "PESCAR", Callable(self, "_fish"), Vector2(82, 48))
+	_make_button(controls, "SALVAR", Callable(self, "_save_game"), Vector2(82, 48))
+	_make_button(controls, "MISSÃO", Callable(self, "_show_quest"), Vector2(82, 48))
 	interaction_button = _make_button(ui_root, "INTERAGIR", Callable(self, "_interact"), Vector2(150, 58))
 	interaction_button.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
 	interaction_button.position = Vector2(-180, -160)
@@ -460,21 +500,39 @@ func _toggle_inventory() -> void:
 		inventory_panel.queue_free()
 		inventory_panel = null
 		return
-	inventory_panel = _panel(ui_root, Vector2(300, 0))
-	inventory_panel.position = Vector2(14, 190)
+	inventory_panel = _panel(ui_root, Vector2(340, 0))
+	inventory_panel.position = Vector2(10, 176)
 	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 10)
 	inventory_panel.add_child(col)
-	var title := Label.new()
-	title.text = "MOCHILA  •  " + str(_inventory_count()) + "/" + str(inventory_capacity)
-	title.add_theme_font_size_override("font_size", 22)
-	col.add_child(title)
+	var header := HBoxContainer.new()
+	col.add_child(header)
+	inventory_title = Label.new()
+	inventory_title.text = "MOCHILA  " + str(_inventory_count()) + "/" + str(inventory_capacity)
+	inventory_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	inventory_title.add_theme_font_size_override("font_size", 23)
+	inventory_title.add_theme_color_override("font_color", Color(0.66, 0.91, 0.77))
+	header.add_child(inventory_title)
+	var section := Label.new()
+	section.text = "RECURSOS COLETADOS"
+	section.add_theme_font_size_override("font_size", 12)
+	section.add_theme_color_override("font_color", Color(0.72, 0.80, 0.76))
+	col.add_child(section)
+	inventory_grid = GridContainer.new()
+	inventory_grid.columns = 3
+	inventory_grid.add_theme_constant_override("h_separation", 7)
+	inventory_grid.add_theme_constant_override("v_separation", 7)
+	col.add_child(inventory_grid)
 	inventory_label = Label.new()
-	inventory_label.text = _inventory_text()
-	inventory_label.add_theme_font_size_override("font_size", 16)
+	inventory_label.text = "Toque em um recurso de consumo abaixo."
+	inventory_label.add_theme_font_size_override("font_size", 12)
 	col.add_child(inventory_label)
-	_make_button(col, "COMER COCO", Callable(self, "_consume_coconut"), Vector2(240, 46))
-	_make_button(col, "BEBER ÁGUA", Callable(self, "_drink_water"), Vector2(240, 46))
-	_make_button(col, "FECHAR", Callable(self, "_toggle_inventory"), Vector2(240, 46))
+	var actions := HBoxContainer.new()
+	col.add_child(actions)
+	_make_button(actions, "COMER COCO", Callable(self, "_consume_coconut"), Vector2(150, 44))
+	_make_button(actions, "BEBER ÁGUA", Callable(self, "_drink_water"), Vector2(150, 44))
+	_make_button(col, "FECHAR MOCHILA", Callable(self, "_toggle_inventory"), Vector2(310, 42))
+	_rebuild_inventory_grid()
 
 func _toggle_crafting() -> void:
 	if craft_panel and is_instance_valid(craft_panel):
@@ -561,13 +619,44 @@ func _pay_items(cost: Dictionary) -> void:
 		inventory[item] = int(inventory.get(item, 0)) - int(cost[item])
 	_refresh_panels()
 
+func _rebuild_inventory_grid() -> void:
+	if inventory_grid == null or not is_instance_valid(inventory_grid):
+		return
+	for child in inventory_grid.get_children():
+		child.queue_free()
+	var icons := {"Coco": "🥥", "Madeira": "🪵", "Fibra": "🌿", "Ervas": "🍃", "Água": "💧", "Concha": "🐚", "Peixe": "🐟", "Pedra": "🪨", "Sucata": "⚙️"}
+	for item in inventory.keys():
+		var slot := PanelContainer.new()
+		slot.custom_minimum_size = Vector2(96, 68)
+		var style := StyleBoxFlat.new()
+		style.bg_color = Color(0.08, 0.15, 0.16, 0.98)
+		style.border_color = Color(0.24, 0.43, 0.37, 0.95)
+		style.set_border_width_all(1)
+		style.set_corner_radius_all(9)
+		style.content_margin_left = 5
+		style.content_margin_right = 5
+		slot.add_theme_stylebox_override("panel", style)
+		inventory_grid.add_child(slot)
+		var cell := VBoxContainer.new()
+		cell.add_theme_constant_override("separation", 0)
+		slot.add_child(cell)
+		var icon := Label.new()
+		icon.text = str(icons.get(item, "📦"))
+		icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		icon.add_theme_font_size_override("font_size", 21)
+		cell.add_child(icon)
+		var caption := Label.new()
+		caption.text = str(item) + "  x" + str(inventory[item])
+		caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		caption.add_theme_font_size_override("font_size", 11)
+		cell.add_child(caption)
+
 func _refresh_panels() -> void:
-	if inventory_panel and is_instance_valid(inventory_panel):
-		var title_label := inventory_panel.find_child("*", true, false) as Label
-		if title_label:
-			title_label.text = "MOCHILA  •  " + str(_inventory_count()) + "/" + str(inventory_capacity)
+	if inventory_title and is_instance_valid(inventory_title):
+		inventory_title.text = "MOCHILA  " + str(_inventory_count()) + "/" + str(inventory_capacity)
 	if inventory_label and is_instance_valid(inventory_label):
-		inventory_label.text = _inventory_text()
+		inventory_label.text = "Itens organizados por espaço • Capacidade " + str(inventory_capacity)
+	_rebuild_inventory_grid()
 	if craft_label and is_instance_valid(craft_label):
 		craft_label.text = "Itens: " + str(_inventory_count()) + "/" + str(inventory_capacity)
 
@@ -826,6 +915,8 @@ func _process(delta: float) -> void:
 		_update_survival()
 	_update_interaction()
 	_update_hud()
+	if minimap and is_instance_valid(minimap):
+		minimap.queue_redraw()
 	if notification_time > 0.0:
 		notification_time -= delta
 		if notification_time <= 0.0 and message_label:
