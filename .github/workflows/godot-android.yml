@@ -62,9 +62,11 @@ jobs:
           curl -fL --retry 3 -o godot/models/banana_clump.glb "https://cdn.3dassets.dev/assets/6822/v1/model.glb"
           curl -fL --retry 3 -o godot/models/beach_dune.glb "https://cdn.3dassets.dev/assets/6830/v1/model.glb"
           curl -fL --retry 3 -o godot/models/hiker.glb "https://tevy.dev/models/hiker/v1/lod2.glb"
+          curl -fL --retry 3 -o godot/models/reclamation_yard.glb "https://cdn.3dassets.dev/assets/239/v1/model.glb"
           test -s godot/models/sand_tile.glb
           test -s godot/models/wet_sand_tile.glb
           test -s godot/models/hiker.glb
+          test -s godot/models/reclamation_yard.glb
           test -s godot/models/island_clearing.glb
           test -s godot/models/rocky_headland.glb
           test -s godot/models/sea_cave.glb
