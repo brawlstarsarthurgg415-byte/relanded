@@ -46,7 +46,8 @@ jobs:
       - name: Download licensed 3D assets
         run: |
           mkdir -p godot/models
-          curl -fL --retry 3 -o godot/models/island_lagoon.glb "https://cdn.3dassets.dev/assets/6862/v1/model.glb"
+          curl -fL --retry 3 -o godot/models/sand_tile.glb "https://cdn.3dassets.dev/assets/6833/v1/model.glb"
+          curl -fL --retry 3 -o godot/models/wet_sand_tile.glb "https://cdn.3dassets.dev/assets/6834/v1/model.glb"
           curl -fL --retry 3 -o godot/models/palm_tall.glb "https://cdn.3dassets.dev/assets/6797/v1/model.glb"
           curl -fL --retry 3 -o godot/models/palm_leaning.glb "https://cdn.3dassets.dev/assets/6796/v1/model.glb"
           curl -fL --retry 3 -o godot/models/shells.glb "https://cdn.3dassets.dev/assets/6835/v1/model.glb"
@@ -61,7 +62,8 @@ jobs:
           curl -fL --retry 3 -o godot/models/banana_clump.glb "https://cdn.3dassets.dev/assets/6822/v1/model.glb"
           curl -fL --retry 3 -o godot/models/beach_dune.glb "https://cdn.3dassets.dev/assets/6830/v1/model.glb"
           curl -fL --retry 3 -o godot/models/hiker.glb "https://tevy.dev/models/hiker/v1/lod2.glb"
-          test -s godot/models/island_lagoon.glb
+          test -s godot/models/sand_tile.glb
+          test -s godot/models/wet_sand_tile.glb
           test -s godot/models/hiker.glb
           test -s godot/models/island_clearing.glb
           test -s godot/models/rocky_headland.glb
