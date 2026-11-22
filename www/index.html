@@ -202,7 +202,7 @@ function hud(){
  [P.hp,P.st,P.fo,P.wa,P.sn].forEach((v,i)=>BU[i].style.width=Math.max(0,v)+'%');
  const g=target(),ar=['→','↘','↓','↙','←','↖','↑','↗'][Math.round(Math.atan2(g.y-P.y,g.x-P.x)/(Math.PI/4))&7];
  $('#tg').textContent=`${ar} ${g.n} · ${Math.round(g.d/10)} m`;
- $('#st').innerHTML=`Peças ${inst}/5${carried.length?' · levando '+carried.length:''}<br>⛽ carro ${Math.round(CAR.fuel)}%<br>${kd>.5?'☀':'🌙'} Arma: ${WN[P.wl]}${P.pz?'<br>☠ Envenenado':''}${P.tired?'<br>Sem fôlego':''}`;
+ $('#st').innerHTML=`Peças ${inst}/5${carried.length?' · levando '+carried.length:''}<br>⛽ carro ${Math.round(CAR.fuel)}%<br>${(Math.sin(dayT*6.283)*1.6+.3)>.5?'☀':'🌙'} Arma: ${WN[P.wl]}${P.pz?'<br>☠ Envenenado':''}${P.tired?'<br>Sem fôlego':''}`;
  $('#inv').textContent=`🍓${INV.berry} 🍖${INV.meat} 💧${INV.clean} 🚱${INV.dirty} 🌿${INV.herb} 🔩${INV.scrap} ⛽${INV.gas} 🧪${INV.ref}/4 💉${INV.med} 🔫${INV.ammo}`;
  $('#ms').textContent=msg;$('#ms').style.opacity=mt>0?1:0;
  const n=started&&!over?nr():0;$('#e').textContent=n?n.l:'Agir';$('#e').style.opacity=n?1:.5;
