@@ -6,6 +6,16 @@ const LOOK_SENSITIVITY := 0.0045
 const WORLD_RADIUS := 32.0
 const ASSET := "res://models/"
 
+class MobileJoystick extends Control:
+	var axis := Vector2.ZERO
+	func _draw() -> void:
+		var center := size * 0.5
+		var radius := minf(size.x, size.y) * 0.46
+		draw_circle(center, radius, Color(0.02, 0.06, 0.07, 0.48))
+		draw_arc(center, radius, 0.0, TAU, 48, Color(0.72, 0.88, 0.79, 0.78), 3.0)
+		draw_circle(center + axis * radius * 0.58, radius * 0.36, Color(0.42, 0.72, 0.59, 0.88))
+		draw_arc(center + axis * radius * 0.58, radius * 0.36, 0.0, TAU, 36, Color.WHITE, 2.0)
+
 class IslandMiniMap extends Control:
 	var game_root: Node3D
 	func _draw() -> void:
@@ -49,6 +59,7 @@ var menu_panel: PanelContainer
 var multiplayer_status: Label
 var ip_input: LineEdit
 var joy_vector := Vector2.ZERO
+var joystick_visual: MobileJoystick
 var joy_origin := Vector2.ZERO
 var look_finger := -1
 var move_finger := -1
@@ -591,56 +602,123 @@ func _build_player() -> void:
 	camera.current = true
 	camera_pivot.add_child(camera)
 	add_child(player)
+	_fit_player_model()
+
+func _fit_player_model() -> void:
+	if player_visual == null:
+		return
+	var combined := AABB()
+	var has_bounds := false
+	for mesh_node in player_visual.find_children("*", "MeshInstance3D", true, false):
+		var mesh_instance := mesh_node as MeshInstance3D
+		var relative_transform: Transform3D = player_visual.transform.affine_inverse() * mesh_instance.transform
+		var mesh_bounds: AABB = relative_transform * mesh_instance.get_aabb()
+		combined = mesh_bounds if not has_bounds else combined.merge(mesh_bounds)
+		has_bounds = true
+	if has_bounds and combined.size.y > 0.01:
+		var fit_scale := 1.62 / combined.size.y
+		player_visual.scale = Vector3.ONE * fit_scale
+		player_visual.position.y = -combined.position.y * fit_scale
 
 func _build_hud() -> void:
-	var top := _panel(ui_root, Vector2(360, 0))
-	top.position = Vector2(14, 14)
-	top.size = Vector2(420, 112)
+	# Compact HUD sized for narrow Android screens.
+	var top := _panel(ui_root, Vector2.ZERO)
+	top.position = Vector2(12, 12)
+	top.size = Vector2(226, 82)
 	hud_label = Label.new()
-	hud_label.add_theme_font_size_override("font_size", 16)
+	hud_label.add_theme_font_size_override("font_size", 11)
+	hud_label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	top.add_child(hud_label)
 	minimap = IslandMiniMap.new()
 	minimap.game_root = self
 	minimap.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-	minimap.position = Vector2(-166, 14)
-	minimap.size = Vector2(150, 150)
+	minimap.offset_left = -122
+	minimap.offset_top = 12
+	minimap.offset_right = -12
+	minimap.offset_bottom = 122
 	ui_root.add_child(minimap)
-	var controls := GridContainer.new()
-	controls.columns = 4
-	controls.anchor_left = 0.0
-	controls.anchor_right = 1.0
-	controls.anchor_top = 1.0
-	controls.anchor_bottom = 1.0
-	controls.offset_left = 10
-	controls.offset_right = -10
-	controls.offset_top = -116
-	controls.offset_bottom = -8
-	controls.add_theme_constant_override("h_separation", 6)
-	controls.add_theme_constant_override("v_separation", 5)
-	ui_root.add_child(controls)
-	_make_button(controls, "MOCHILA", Callable(self, "_toggle_inventory"), Vector2(82, 48))
-	_make_button(controls, "CRIAR", Callable(self, "_toggle_crafting"), Vector2(82, 48))
-	_make_button(controls, "MERGULHO", Callable(self, "_toggle_dive"), Vector2(82, 48))
-	_make_button(controls, "CORRER", Callable(self, "_toggle_sprint"), Vector2(82, 48))
-	_make_button(controls, "PESCAR", Callable(self, "_fish"), Vector2(82, 48))
-	_make_button(controls, "SALVAR", Callable(self, "_save_game"), Vector2(82, 48))
-	_make_button(controls, "MISSÃO", Callable(self, "_show_quest"), Vector2(82, 48))
-	interaction_button = _make_button(ui_root, "INTERAGIR", Callable(self, "_interact"), Vector2(150, 58))
+
+	var menu := _make_button(ui_root, "MENU", Callable(self, "_pause_to_menu"), Vector2(78, 38))
+	menu.position = Vector2(12, 102)
+	menu.add_theme_font_size_override("font_size", 13)
+
+	# Fixed virtual stick on the lower-left; independent camera touch zone on the right.
+	joystick_visual = MobileJoystick.new()
+	joystick_visual.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
+	joystick_visual.offset_left = 18
+	joystick_visual.offset_top = -158
+	joystick_visual.offset_right = 158
+	joystick_visual.offset_bottom = -18
+	joystick_visual.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ui_root.add_child(joystick_visual)
+
+	var backpack := _make_button(ui_root, "MOCHILA", Callable(self, "_toggle_inventory"), Vector2(94, 48))
+	backpack.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
+	backpack.offset_left = -206
+	backpack.offset_top = -112
+	backpack.offset_right = -108
+	backpack.offset_bottom = -62
+	backpack.add_theme_font_size_override("font_size", 12)
+
+	var craft := _make_button(ui_root, "CRIAR", Callable(self, "_toggle_crafting"), Vector2(94, 48))
+	craft.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
+	craft.offset_left = -104
+	craft.offset_top = -112
+	craft.offset_right = -6
+	craft.offset_bottom = -62
+	craft.add_theme_font_size_override("font_size", 12)
+
+	var sprint := _make_button(ui_root, "CORRER", Callable(self, "_toggle_sprint"), Vector2(94, 48))
+	sprint.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
+	sprint.offset_left = -206
+	sprint.offset_top = -58
+	sprint.offset_right = -108
+	sprint.offset_bottom = -8
+	sprint.add_theme_font_size_override("font_size", 12)
+
+	var more := _make_button(ui_root, "MAIS", Callable(self, "_toggle_quick_actions"), Vector2(94, 48))
+	more.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
+	more.offset_left = -104
+	more.offset_top = -58
+	more.offset_right = -6
+	more.offset_bottom = -8
+	more.add_theme_font_size_override("font_size", 12)
+
+	interaction_button = _make_button(ui_root, "COLETAR", Callable(self, "_interact"), Vector2(112, 48))
 	interaction_button.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
-	interaction_button.position = Vector2(-180, -160)
+	interaction_button.offset_left = -122
+	interaction_button.offset_top = -168
+	interaction_button.offset_right = -6
+	interaction_button.offset_bottom = -118
+	interaction_button.add_theme_font_size_override("font_size", 13)
 	interaction_button.visible = false
+
 	message_label = Label.new()
-	message_label.position = Vector2(16, 140)
-	message_label.add_theme_font_size_override("font_size", 17)
+	message_label.position = Vector2(12, 148)
+	message_label.size = Vector2(250, 52)
+	message_label.add_theme_font_size_override("font_size", 13)
 	message_label.add_theme_color_override("font_color", Color(0.95, 0.88, 0.62))
+	message_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	ui_root.add_child(message_label)
-	var back := Button.new()
-	back.text = "MENU"
-	back.custom_minimum_size = Vector2(82, 42)
-	back.position = Vector2(14, 132)
-	back.pressed.connect(_pause_to_menu)
-	ui_root.add_child(back)
 	_update_hud()
+
+func _toggle_quick_actions() -> void:
+	var existing := ui_root.get_node_or_null("QuickActions")
+	if existing:
+		existing.queue_free()
+		return
+	var panel := _panel(ui_root, Vector2(220, 0))
+	panel.name = "QuickActions"
+	panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	panel.position = Vector2(-110, -115)
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 7)
+	panel.add_child(col)
+	_make_button(col, "PESCAR", Callable(self, "_fish"), Vector2(190, 42))
+	_make_button(col, "MERGULHAR", Callable(self, "_toggle_dive"), Vector2(190, 42))
+	_make_button(col, "SALVAR", Callable(self, "_save_game"), Vector2(190, 42))
+	_make_button(col, "MISSÃO", Callable(self, "_show_quest"), Vector2(190, 42))
+	_make_button(col, "FECHAR", func(): panel.queue_free(), Vector2(190, 42))
 
 func _toggle_inventory() -> void:
 	if inventory_panel and is_instance_valid(inventory_panel):
@@ -1019,27 +1097,38 @@ func _pause_to_menu() -> void:
 		multiplayer.multiplayer_peer = null
 	_show_main_menu()
 
-func _unhandled_input(event: InputEvent) -> void:
+func _input(event: InputEvent) -> void:
 	if not game_active:
 		return
+	var screen_size := get_viewport().get_visible_rect().size
 	if event is InputEventScreenTouch:
 		if event.pressed:
-			if event.position.x < get_viewport().get_visible_rect().size.x * 0.48:
+			# Left lower quadrant is reserved for movement; bottom-right buttons stay free.
+			if event.position.x < screen_size.x * 0.43 and event.position.y > screen_size.y * 0.55 and move_finger == -1:
 				move_finger = event.index
-				joy_origin = event.position
-				joy_vector = Vector2.ZERO
-			else:
+				joy_origin = Vector2(88.0, screen_size.y - 88.0)
+				joy_vector = ((event.position - joy_origin) / 70.0).limit_length(1.0)
+				if joystick_visual:
+					joystick_visual.axis = joy_vector
+					joystick_visual.queue_redraw()
+			elif event.position.x > screen_size.x * 0.52 and event.position.y > screen_size.y * 0.18 and event.position.y < screen_size.y * 0.68 and look_finger == -1:
 				look_finger = event.index
 				last_look = event.position
 		else:
 			if event.index == move_finger:
 				move_finger = -1
 				joy_vector = Vector2.ZERO
+				if joystick_visual:
+					joystick_visual.axis = Vector2.ZERO
+					joystick_visual.queue_redraw()
 			if event.index == look_finger:
 				look_finger = -1
 	elif event is InputEventScreenDrag:
 		if event.index == move_finger:
 			joy_vector = ((event.position - joy_origin) / 70.0).limit_length(1.0)
+			if joystick_visual:
+				joystick_visual.axis = joy_vector
+				joystick_visual.queue_redraw()
 		elif event.index == look_finger:
 			camera_pivot.rotate_y(-event.relative.x * LOOK_SENSITIVITY)
 			camera.rotate_x(-event.relative.y * LOOK_SENSITIVITY)
@@ -1271,7 +1360,6 @@ func _update_hud() -> void:
 	var swim_text := "NADANDO" if is_swimming else "EM TERRA"
 	if is_diving:
 		swim_text = "MERGULHANDO • O2 " + str(int(oxygen)) + "%"
-	hud_label.text = "DIA %d  •  %02d:%02d  •  %s\nVIDA %d  FOME %d  SEDE %d  FÔLEGO %d\nTEMPERATURA %s  •  %s  •  %s" % [
-		day_number, hour, minute, weather, int(health), int(hunger), int(thirst), int(stamina), temp_text, swim_text,
-		("ABRIGADO" if has_shelter else "SEM ABRIGO") + " • NV " + str(player_level)
+	hud_label.text = "DIA %d • %02d:%02d • %s\nVIDA %d  FOME %d  SEDE %d\n%s • NV %d" % [
+		day_number, hour, minute, weather, int(health), int(hunger), int(thirst), swim_text, player_level
 	]
