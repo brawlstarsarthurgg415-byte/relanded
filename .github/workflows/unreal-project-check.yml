@@ -28,6 +28,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Validate Unreal project descriptor
         run: |
           python3 - <<'PY'
@@ -37,3 +38,20 @@ jobs:
           assert project["Modules"][0]["Name"] == "Relanded"
           print("Unreal project descriptor: OK")
           PY
+
+      - name: Check required C++ project files
+        run: |
+          test -f Source/Relanded/Relanded.Build.cs
+          test -f Source/Relanded/Relanded.cpp
+          test -f Source/Relanded/RelandedGameMode.h
+          test -f Source/Relanded/RelandedGameMode.cpp
+          test -f Source/Relanded/Survival/RelVitalsComponent.h
+          test -f Source/Relanded/Survival/RelVitalsComponent.cpp
+          test -f Source/Relanded/Survival/RelBodyComponent.h
+          test -f Source/Relanded/Survival/RelBodyComponent.cpp
+          test -f Source/Relanded.Target.cs
+          test -f Source/RelandedEditor.Target.cs
+          echo "C++ project scaffold and survival components: OK"
+
+      - name: Check third-party asset license manifest
+        run: python3 Tools/check_licenses.py
