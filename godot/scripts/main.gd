@@ -161,9 +161,9 @@ func _build_hud() -> void:
 	panel.add_child(status_label)
 	var help := Label.new()
 	help.text = "Toque esquerdo: mover   •   Arraste à direita: olhar"
-	help.position = Vector2(18, -48)
+	help.position = Vector2(18, 104)
 	help.add_theme_font_size_override("font_size", 15)
-	panel.add_child(help)
+	layer.add_child(help)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
@@ -190,7 +190,7 @@ func _physics_process(delta: float) -> void:
 	input_vector.y = Input.get_action_strength("ui_down") - Input.get_action_strength("ui_up")
 	if joy_vector.length() > 0.08:
 		input_vector = joy_vector
-	var direction := (player.transform.basis * Vector3(input_vector.x, 0, input_vector.y)).normalized()
+	var direction := (camera_pivot.global_basis * Vector3(input_vector.x, 0, input_vector.y)).normalized()
 	if direction.length() > 0.01:
 		player.velocity.x = direction.x * MOVE_SPEED
 		player.velocity.z = direction.z * MOVE_SPEED
