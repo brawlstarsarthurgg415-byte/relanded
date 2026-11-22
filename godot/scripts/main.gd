@@ -291,6 +291,8 @@ func _build_world() -> void:
 	_add_interactable("shell", "Conchas", Vector3(-9, 1.0, 16))
 	_add_interactable("stone", "Pedras", Vector3(5, 1.0, -17))
 	_add_interactable("wreck", "Destroços do avião", Vector3(19, 1.0, -2))
+	_add_interactable("wreck", "Destroços do avião", Vector3(21, 1.0, -3))
+	_add_interactable("wreck", "Destroços do avião", Vector3(17, 1.0, -1))
 	_add_interactable("shelter", "Abrigo natural", Vector3(13, 1.0, 12))
 	_set_quality(graphics_quality)
 
@@ -411,6 +413,7 @@ func _build_hud() -> void:
 	_make_button(controls, "MOCHILA", Callable(self, "_toggle_inventory"), Vector2(112, 54))
 	_make_button(controls, "CRIAR", Callable(self, "_toggle_crafting"), Vector2(100, 54))
 	_make_button(controls, "MERGULHAR", Callable(self, "_toggle_dive"), Vector2(112, 54))
+	_make_button(controls, "PESCAR", Callable(self, "_fish"), Vector2(92, 54))
 	_make_button(controls, "SALVAR", Callable(self, "_save_game"), Vector2(92, 54))
 	_make_button(controls, "MISSÃO", Callable(self, "_show_quest"), Vector2(92, 54))
 	interaction_button = _make_button(ui_root, "INTERAGIR", Callable(self, "_interact"), Vector2(150, 58))
@@ -538,6 +541,10 @@ func _pay_items(cost: Dictionary) -> void:
 	_refresh_panels()
 
 func _refresh_panels() -> void:
+	if inventory_panel and is_instance_valid(inventory_panel):
+		var title_label := inventory_panel.find_child("*", true, false) as Label
+		if title_label:
+			title_label.text = "MOCHILA  •  " + str(_inventory_count()) + "/" + str(inventory_capacity)
 	if inventory_label and is_instance_valid(inventory_label):
 		inventory_label.text = _inventory_text()
 	if craft_label and is_instance_valid(craft_label):
@@ -650,6 +657,26 @@ func _drink_water() -> void:
 	inventory["Água"] -= 1
 	thirst = minf(100.0, thirst + 35.0)
 	_refresh_panels()
+	_update_hud()
+
+func _fish() -> void:
+	if not has_fishing_rod:
+		_show_message("Fabrique uma vara de pesca primeiro.")
+		return
+	if not is_swimming and Vector2(player.global_position.x, player.global_position.z).length() < WORLD_RADIUS - 5.0:
+		_show_message("Vá até a beira do mar para pescar.")
+		return
+	if stamina < 12.0:
+		_show_message("Você está cansado. Descanse um pouco.")
+		return
+	stamina -= 12.0
+	var chance := randf()
+	if chance <= 0.72:
+		_add_item("Peixe", 1)
+		_add_experience(12)
+		_show_message("Boa pescaria! Você conseguiu um peixe.")
+	else:
+		_show_message("Nenhum peixe mordeu a isca. Tente novamente.")
 	_update_hud()
 
 func _toggle_dive() -> void:
@@ -808,7 +835,7 @@ func _physics_process(delta: float) -> void:
 		_show_message("Você voltou à costa.")
 
 func _continue_game() -> void:
-	if not FileAccess.file_exists("user://relaned_save.json"):
+	if not FileAccess.file_exists("user://relanded_save.json"):
 		_show_message("Nenhum jogo salvo. Escolha NOVO JOGO.")
 		return
 	_load_game()
