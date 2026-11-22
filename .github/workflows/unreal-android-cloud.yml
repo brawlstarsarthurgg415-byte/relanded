@@ -1,6 +1,6 @@
 name: Build Relanded for Android (cloud runner)
 
-on:
+"on":
   workflow_dispatch:
     inputs:
       configuration:
