@@ -1,6 +1,6 @@
 name: Unreal project structure check
 
-on:
+"on":
   push:
     paths:
       - 'Relanded.uproject'
