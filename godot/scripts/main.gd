@@ -47,6 +47,7 @@ var has_spear := false
 var has_fishing_rod := false
 var sprinting := false
 var campfire_position := Vector3.ZERO
+var shelter_position := Vector3.ZERO
 var _saved_position := Vector3(0, 1.2, 9)
 var weather := "Ensolarado"
 var is_swimming := false
@@ -632,6 +633,13 @@ func _craft_fire() -> void:
 		return
 	_pay_items(cost)
 	has_campfire = true
+	campfire_position = player.global_position + Vector3(0, 1.2, -2.0)
+	var fire_light := OmniLight3D.new()
+	fire_light.position = campfire_position
+	fire_light.light_color = Color(1.0, 0.48, 0.16)
+	fire_light.light_energy = 1.4
+	fire_light.omni_range = 8.0
+	add_child(fire_light)
 	_show_message("Fogueira montada. O frio da noite será menos intenso.")
 
 func _craft_backpack() -> void:
