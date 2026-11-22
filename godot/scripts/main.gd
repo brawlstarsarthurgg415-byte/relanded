@@ -3,7 +3,7 @@ extends Node3D
 const MOVE_SPEED := 5.2
 const SWIM_SPEED := 2.8
 const LOOK_SENSITIVITY := 0.0045
-const WORLD_RADIUS := 29.0
+const WORLD_RADIUS := 22.5
 const ASSET := "res://models/"
 
 var ui_layer: CanvasLayer
@@ -277,7 +277,15 @@ func _build_world() -> void:
 	island_root = Node3D.new()
 	island_root.name = "DownloadedIslandEnvironment"
 	add_child(island_root)
-	_spawn_model("island_lagoon.glb", Vector3.ZERO, Vector3(5.0, 5.0, 5.0), island_root)
+	for gx in range(-5, 6):
+		for gz in range(-5, 6):
+			var tile_center := Vector2(float(gx) * 4.0, float(gz) * 4.0)
+			if tile_center.length() <= 21.0:
+				_spawn_model("sand_tile.glb", Vector3(tile_center.x, -0.05, tile_center.y), Vector3.ONE, island_root)
+	_spawn_model("wet_sand_tile.glb", Vector3(0, -0.04, 20), Vector3.ONE, island_root)
+	_spawn_model("wet_sand_tile.glb", Vector3(0, -0.04, -20), Vector3.ONE, island_root)
+	_spawn_model("wet_sand_tile.glb", Vector3(20, -0.04, 0), Vector3.ONE, island_root)
+	_spawn_model("wet_sand_tile.glb", Vector3(-20, -0.04, 0), Vector3.ONE, island_root)
 	_spawn_model("palm_tall.glb", Vector3(-13, 0, -8), Vector3(1.8, 1.8, 1.8), island_root)
 	_spawn_model("palm_tall.glb", Vector3(15, 0, -10), Vector3(1.5, 1.5, 1.5), island_root)
 	_spawn_model("palm_leaning.glb", Vector3(-17, 0, 9), Vector3(1.5, 1.5, 1.5), island_root)
