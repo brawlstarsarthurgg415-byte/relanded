@@ -26,9 +26,10 @@ var joy_vector := Vector2.ZERO
 var joy_origin := Vector2.ZERO
 var look_finger := -1
 var move_finger := -1
+var last_look := Vector2.ZERO
 var nearest_interactable: Node3D
 var interactables: Array[Node3D] = []
-var inventory := {"Coco": 0, "Madeira": 0, "Fibra": 0, "Ervas": 0, "Água": 0, "Concha": 0}
+var inventory := {"Coco": 0, "Madeira": 0, "Fibra": 0, "Ervas": 0, "Água": 0, "Concha": 0, "Peixe": 0, "Pedra": 0, "Sucata": 0}
 var inventory_capacity := 12
 var health := 100.0
 var hunger := 100.0
@@ -38,6 +39,13 @@ var body_temperature := 37.0
 var oxygen := 100.0
 var day_number := 1
 var day_time := 9.0
+var experience := 0
+var player_level := 1
+var quest_stage := 0
+var collected_total := 0
+var has_spear := false
+var has_fishing_rod := false
+var _saved_position := Vector3(0, 1.2, 9)
 var weather := "Ensolarado"
 var is_swimming := false
 var is_diving := false
@@ -118,12 +126,13 @@ func _show_main_menu() -> void:
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	subtitle.add_theme_font_size_override("font_size", 13)
 	col.add_child(subtitle)
-	_make_button(col, "JOGAR SOLO", Callable(self, "_start_solo"))
+	_make_button(col, "CONTINUAR", Callable(self, "_continue_game"))
+	_make_button(col, "NOVO JOGO", Callable(self, "_start_solo"))
 	_make_button(col, "MULTIPLAYER • WI-FI", Callable(self, "_show_multiplayer"))
 	_make_button(col, "CONFIGURAÇÕES", Callable(self, "_show_settings"))
 	_make_button(col, "SAIR", Callable(self, "_exit_game"))
 	var note := Label.new()
-	note.text = "A ilha não vai esperar por você."
+	note.text = "Explore, construa, sobreviva e descubra o que aconteceu."
 	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	note.add_theme_font_size_override("font_size", 12)
 	col.add_child(note)
@@ -232,6 +241,7 @@ func _exit_game() -> void:
 	get_tree().quit()
 
 func _start_solo() -> void:
+	_reset_progress()
 	_clear_ui()
 	_build_world()
 	_build_player()
@@ -279,8 +289,33 @@ func _build_world() -> void:
 	_add_interactable("fiber", "Folhas e fibras", Vector3(15, 1.0, -10))
 	_add_interactable("herb", "Plantas medicinais", Vector3(-17, 1.0, 9))
 	_add_interactable("shell", "Conchas", Vector3(-9, 1.0, 16))
+	_add_interactable("stone", "Pedras", Vector3(5, 1.0, -17))
+	_add_interactable("wreck", "Destroços do avião", Vector3(19, 1.0, -2))
 	_add_interactable("shelter", "Abrigo natural", Vector3(13, 1.0, 12))
 	_set_quality(graphics_quality)
+
+func _reset_progress() -> void:
+	inventory = {"Coco": 0, "Madeira": 0, "Fibra": 0, "Ervas": 0, "Água": 0, "Concha": 0, "Peixe": 0, "Pedra": 0, "Sucata": 0}
+	inventory_capacity = 12
+	health = 100.0
+	hunger = 100.0
+	thirst = 100.0
+	stamina = 100.0
+	body_temperature = 37.0
+	oxygen = 100.0
+	day_number = 1
+	day_time = 9.0
+	weather = "Ensolarado"
+	experience = 0
+	player_level = 1
+	quest_stage = 0
+	collected_total = 0
+	has_shelter = false
+	has_campfire = false
+	cold_clothes = false
+	has_spear = false
+	has_fishing_rod = false
+	_saved_position = Vector3(0, 1.2, 9)
 
 func _add_ocean() -> void:
 	var ocean := MeshInstance3D.new()
@@ -355,6 +390,7 @@ func _build_player() -> void:
 	player.add_child(camera_pivot)
 	camera = Camera3D.new()
 	camera.position = Vector3(0, 2.1, 5.4)
+	player.position = _saved_position
 	camera.rotation_degrees.x = -12
 	camera.current = true
 	camera_pivot.add_child(camera)
@@ -375,6 +411,8 @@ func _build_hud() -> void:
 	_make_button(controls, "MOCHILA", Callable(self, "_toggle_inventory"), Vector2(112, 54))
 	_make_button(controls, "CRIAR", Callable(self, "_toggle_crafting"), Vector2(100, 54))
 	_make_button(controls, "MERGULHAR", Callable(self, "_toggle_dive"), Vector2(112, 54))
+	_make_button(controls, "SALVAR", Callable(self, "_save_game"), Vector2(92, 54))
+	_make_button(controls, "MISSÃO", Callable(self, "_show_quest"), Vector2(92, 54))
 	interaction_button = _make_button(ui_root, "INTERAGIR", Callable(self, "_interact"), Vector2(150, 58))
 	interaction_button.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
 	interaction_button.position = Vector2(-180, -160)
@@ -431,8 +469,11 @@ func _toggle_crafting() -> void:
 	col.add_child(craft_label)
 	_make_button(col, "ABRIGO  •  5 madeira + 4 fibra", Callable(self, "_craft_shelter"), Vector2(300, 48))
 	_make_button(col, "ROUPA TÉRMICA  •  4 fibra + 2 ervas", Callable(self, "_craft_clothes"), Vector2(300, 48))
+	_make_button(col, "LANÇA  •  3 madeira + 2 pedra", Callable(self, "_craft_spear"), Vector2(300, 48))
+	_make_button(col, "VARA DE PESCA  •  3 madeira + 3 fibra", Callable(self, "_craft_rod"), Vector2(300, 48))
 	_make_button(col, "ATADURA  •  2 fibra + 1 erva", Callable(self, "_craft_bandage"), Vector2(300, 48))
 	_make_button(col, "FOGUEIRA  •  3 madeira + 2 fibra", Callable(self, "_craft_fire"), Vector2(300, 48))
+	_make_button(col, "COZINHAR PEIXE  •  1 peixe", Callable(self, "_cook_fish"), Vector2(300, 48))
 	_make_button(col, "MOCHILA MAIOR  •  4 madeira + 5 fibra", Callable(self, "_craft_backpack"), Vector2(300, 48))
 	_make_button(col, "FECHAR", Callable(self, "_toggle_crafting"), Vector2(300, 46))
 
@@ -452,11 +493,38 @@ func _inventory_text() -> String:
 	return "\n".join(lines)
 
 func _add_item(item: String, amount: int = 1) -> void:
-	if _inventory_count() >= inventory_capacity:
+	var room := inventory_capacity - _inventory_count()
+	if room <= 0:
 		_show_message("Mochila cheia. Melhore sua capacidade.")
 		return
-	inventory[item] = int(inventory.get(item, 0)) + amount
+	var accepted := mini(amount, room)
+	inventory[item] = int(inventory.get(item, 0)) + accepted
+	collected_total += accepted
+	_add_experience(accepted * 2)
+	_check_quest_progress()
 	_refresh_panels()
+
+func _add_experience(amount: int) -> void:
+	experience += amount
+	while experience >= player_level * 100:
+		experience -= player_level * 100
+		player_level += 1
+		inventory_capacity += 2
+		_show_message("Nível %d alcançado! Mochila ampliada." % player_level)
+
+func _check_quest_progress() -> void:
+	if quest_stage == 0 and int(inventory.get("Água", 0)) >= 2 and int(inventory.get("Coco", 0)) >= 1:
+		quest_stage = 1
+		_add_experience(25)
+		_show_message("Missão concluída: primeiros suprimentos. Construa um abrigo.")
+	elif quest_stage == 1 and has_shelter:
+		quest_stage = 2
+		_add_experience(50)
+		_show_message("Missão concluída: abrigo pronto. Investigue os destroços.")
+	elif quest_stage == 2 and int(inventory.get("Sucata", 0)) >= 3:
+		quest_stage = 3
+		_add_experience(100)
+		_show_message("Missão principal concluída! Continue explorando a ilha.")
 
 func _has_items(cost: Dictionary) -> bool:
 	for item in cost.keys():
@@ -483,6 +551,7 @@ func _craft_shelter() -> void:
 	_pay_items(cost)
 	has_shelter = true
 	_show_message("Abrigo fabricado. Você fica mais protegido durante a noite.")
+	_check_quest_progress()
 	if island_root:
 		_spawn_model("lean_to.glb", Vector3(3, 0, 4), Vector3(1.8, 1.8, 1.8), island_root)
 
@@ -494,6 +563,45 @@ func _craft_clothes() -> void:
 	_pay_items(cost)
 	cold_clothes = true
 	_show_message("Roupa térmica equipada. Sua temperatura fica mais estável.")
+
+func _craft_spear() -> void:
+	if has_spear:
+		_show_message("Você já possui uma lança.")
+		return
+	var cost := {"Madeira": 3, "Pedra": 2}
+	if not _has_items(cost):
+		_show_message("Colete madeira e pedras para fabricar a lança.")
+		return
+	_pay_items(cost)
+	has_spear = true
+	_add_experience(20)
+	_show_message("Lança fabricada.")
+
+func _craft_rod() -> void:
+	if has_fishing_rod:
+		_show_message("Você já possui uma vara de pesca.")
+		return
+	var cost := {"Madeira": 3, "Fibra": 3}
+	if not _has_items(cost):
+		_show_message("Faltam materiais para a vara de pesca.")
+		return
+	_pay_items(cost)
+	has_fishing_rod = true
+	_add_experience(20)
+	_show_message("Vara de pesca fabricada. Pesque na costa.")
+
+func _cook_fish() -> void:
+	if not has_campfire:
+		_show_message("Monte uma fogueira antes de cozinhar.")
+		return
+	if int(inventory.get("Peixe", 0)) <= 0:
+		_show_message("Você não tem peixe.")
+		return
+	inventory["Peixe"] -= 1
+	inventory["Coco"] = int(inventory.get("Coco", 0)) + 1
+	_add_experience(8)
+	_show_message("Peixe cozido e guardado como alimento.")
+	_refresh_panels()
 
 func _craft_bandage() -> void:
 	var cost := {"Fibra": 2, "Ervas": 1}
@@ -575,6 +683,14 @@ func _interact() -> void:
 		"shell":
 			_add_item("Concha", 1)
 			_show_message("Você guardou uma concha.")
+		"stone":
+			_add_item("Pedra", 2)
+			_show_message("Você recolheu pedras.")
+		"wreck":
+			_add_item("Sucata", 1)
+			_add_item("Madeira", 1)
+			_add_experience(15)
+			_show_message("Você vasculhou os destroços.")
 		"shelter":
 			_add_item("Fibra", 1)
 			_show_message("Você encontrou fibras no abrigo.")
@@ -646,6 +762,8 @@ func _process(delta: float) -> void:
 		day_time = 0.0
 		day_number += 1
 		weather = "Chuva" if day_number % 3 == 0 else "Ensolarado"
+		_respawn_resources()
+		_add_experience(5)
 	survival_tick += delta
 	if survival_tick >= 1.0:
 		survival_tick = 0.0
@@ -688,6 +806,109 @@ func _physics_process(delta: float) -> void:
 		player.global_position = Vector3(0, 1.5, 9)
 		player.velocity = Vector3.ZERO
 		_show_message("Você voltou à costa.")
+
+func _continue_game() -> void:
+	if not FileAccess.file_exists("user://relaned_save.json"):
+		_show_message("Nenhum jogo salvo. Escolha NOVO JOGO.")
+		return
+	_load_game()
+	_clear_ui()
+	_build_world()
+	_build_player()
+	_build_hud()
+	game_active = true
+	_show_message("Progresso carregado.")
+
+func _save_game() -> void:
+	if player == null:
+		return
+	var data := {
+		"inventory": inventory, "inventory_capacity": inventory_capacity,
+		"health": health, "hunger": hunger, "thirst": thirst, "stamina": stamina,
+		"body_temperature": body_temperature, "oxygen": oxygen,
+		"day_number": day_number, "day_time": day_time, "weather": weather,
+		"experience": experience, "player_level": player_level, "quest_stage": quest_stage,
+		"collected_total": collected_total, "has_shelter": has_shelter,
+		"has_campfire": has_campfire, "cold_clothes": cold_clothes,
+		"has_spear": has_spear, "has_fishing_rod": has_fishing_rod,
+		"player_position": [player.global_position.x, player.global_position.y, player.global_position.z]
+	}
+	var file := FileAccess.open("user://relaned_save.json", FileAccess.WRITE)
+	if file:
+		file.store_string(JSON.stringify(data))
+		_show_message("Jogo salvo neste aparelho.")
+	else:
+		_show_message("Falha ao salvar: " + str(FileAccess.get_open_error()))
+
+func _load_game() -> void:
+	var file := FileAccess.open("user://relaned_save.json", FileAccess.READ)
+	if file == null:
+		return
+	var parsed = JSON.parse_string(file.get_as_text())
+	if typeof(parsed) != TYPE_DICTIONARY:
+		return
+	var data: Dictionary = parsed
+	inventory = data.get("inventory", inventory)
+	inventory_capacity = int(data.get("inventory_capacity", 12))
+	health = float(data.get("health", 100.0))
+	hunger = float(data.get("hunger", 100.0))
+	thirst = float(data.get("thirst", 100.0))
+	stamina = float(data.get("stamina", 100.0))
+	body_temperature = float(data.get("body_temperature", 37.0))
+	oxygen = float(data.get("oxygen", 100.0))
+	day_number = int(data.get("day_number", 1))
+	day_time = float(data.get("day_time", 9.0))
+	weather = str(data.get("weather", "Ensolarado"))
+	experience = int(data.get("experience", 0))
+	player_level = int(data.get("player_level", 1))
+	quest_stage = int(data.get("quest_stage", 0))
+	collected_total = int(data.get("collected_total", 0))
+	has_shelter = bool(data.get("has_shelter", false))
+	has_campfire = bool(data.get("has_campfire", false))
+	cold_clothes = bool(data.get("cold_clothes", false))
+	has_spear = bool(data.get("has_spear", false))
+	has_fishing_rod = bool(data.get("has_fishing_rod", false))
+	var pos: Array = data.get("player_position", [0.0, 1.2, 9.0])
+	if pos.size() >= 3:
+		_saved_position = Vector3(float(pos[0]), float(pos[1]), float(pos[2]))
+
+func _show_quest() -> void:
+	var panel := _panel(ui_root, Vector2(340, 0))
+	panel.position = Vector2(14, 250)
+	var col := VBoxContainer.new()
+	panel.add_child(col)
+	var title := Label.new()
+	title.text = "DIÁRIO DE SOBREVIVÊNCIA"
+	title.add_theme_font_size_override("font_size", 20)
+	col.add_child(title)
+	var tasks := [
+		"1. Encontre 2 águas e 1 coco.",
+		"2. Fabrique um abrigo com 5 madeiras e 4 fibras.",
+		"3. Investigue os destroços e reúna 3 sucatas.",
+		"4. Missão principal concluída! Continue explorando."
+	]
+	var detail := Label.new()
+	detail.text = tasks[mini(quest_stage, tasks.size() - 1)] + "\nNível %d • XP %d/%d • Dia %d" % [player_level, experience, player_level * 100, day_number]
+	detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	col.add_child(detail)
+	_make_button(col, "FECHAR DIÁRIO", func(): panel.queue_free(), Vector2(280, 44))
+
+func _respawn_resources() -> void:
+	var occupied := {}
+	for node in interactables:
+		if is_instance_valid(node):
+			occupied[str(node.get_meta("kind", ""))] = true
+	var candidates := [
+		["coconut", "Coqueiro", Vector3(-13, 1, -8)],
+		["wood", "Madeira à deriva", Vector3(9, 1, 16)],
+		["fiber", "Folhas e fibras", Vector3(15, 1, -10)],
+		["herb", "Plantas medicinais", Vector3(-17, 1, 9)],
+		["shell", "Conchas", Vector3(-9, 1, 16)],
+		["stone", "Pedras", Vector3(5, 1, -17)]
+	]
+	for entry in candidates:
+		if not occupied.has(entry[0]):
+			_add_interactable(entry[0], entry[1], entry[2])
 
 func _update_survival() -> void:
 	hunger = maxf(0.0, hunger - 0.035)
@@ -734,5 +955,5 @@ func _update_hud() -> void:
 		swim_text = "MERGULHANDO • O2 " + str(int(oxygen)) + "%"
 	hud_label.text = "DIA %d  •  %02d:%02d  •  %s\nVIDA %d  FOME %d  SEDE %d  FÔLEGO %d\nTEMPERATURA %s  •  %s  •  %s" % [
 		day_number, hour, minute, weather, int(health), int(hunger), int(thirst), int(stamina), temp_text, swim_text,
-		("ABRIGADO" if has_shelter else "SEM ABRIGO")
+		("ABRIGADO" if has_shelter else "SEM ABRIGO") + " • NV " + str(player_level)
 	]
