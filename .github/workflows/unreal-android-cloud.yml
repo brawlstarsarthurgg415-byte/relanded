@@ -1,0 +1,60 @@
+name: Build Relanded for Android (cloud runner)
+
+on:
+  workflow_dispatch:
+    inputs:
+      configuration:
+        description: Build configuration
+        required: true
+        type: choice
+        options:
+          - Development
+          - Shipping
+        default: Development
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    runs-on: [self-hosted, Windows, X64, unreal, android]
+    timeout-minutes: 360
+    steps:
+      - name: Checkout Relanded
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Verify Unreal Engine installation
+        shell: pwsh
+        run: |
+          if (-not $env:UE_ROOT) { throw 'UE_ROOT is not configured on this runner.' }
+          $uat = Join-Path $env:UE_ROOT 'Engine/Build/BatchFiles/RunUAT.bat'
+          if (-not (Test-Path $uat)) { throw 'RunUAT.bat not found. Check UE_ROOT.' }
+          Write-Host "Using Unreal Engine at $env:UE_ROOT"
+
+      - name: Verify Android toolchain
+        shell: pwsh
+        run: |
+          if (-not $env:ANDROID_HOME -and -not $env:ANDROID_SDK_ROOT) { throw 'Android SDK path is missing.' }
+
+      - name: Build Android package
+        shell: pwsh
+        env:
+          BUILD_CONFIGURATION: ${{ inputs.configuration }}
+        run: |
+          $uat = Join-Path $env:UE_ROOT 'Engine/Build/BatchFiles/RunUAT.bat'
+          & $uat BuildCookRun `
+            -project="$((Get-Location).Path)/Relanded.uproject" `
+            -noP4 -platform=Android -clientconfig=$env:BUILD_CONFIGURATION `
+            -build -cook -stage -pak -archive `
+            -archivedirectory="$((Get-Location).Path)/artifacts/android" -utf8output
+          if ($LASTEXITCODE -ne 0) { throw "Unreal Android build failed: $LASTEXITCODE" }
+
+      - name: Upload Android build
+        uses: actions/upload-artifact@v4
+        with:
+          name: relanded-android
+          path: artifacts/android/**
+          if-no-files-found: error
+          retention-days: 7
