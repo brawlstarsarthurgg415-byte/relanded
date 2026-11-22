@@ -1,0 +1,13 @@
+{
+  "FileVersion": 3,
+  "EngineAssociation": "",
+  "Category": "Games",
+  "Description": "Relanded - 3D survival game",
+  "Modules": [
+    {
+      "Name": "Relanded",
+      "Type": "Runtime",
+      "LoadingPhase": "Default"
+    }
+  ]
+}
