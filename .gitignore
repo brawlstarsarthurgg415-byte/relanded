@@ -1,0 +1,35 @@
+# Unreal Engine generated files
+Binaries/
+DerivedDataCache/
+Intermediate/
+Saved/
+.vs/
+.vscode/
+.idea/
+*.sln
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.VC.db
+*.VC.opendb
+
+# Unreal build outputs and local caches
+Build/
+*.log
+*.tmp
+*.bak
+
+# Operating system files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Keep project source assets and configuration tracked.
+# Do not ignore Config/, Content/, Source/, Plugins/ or *.uproject.
+
+# Existing web/Capacitor dependencies and generated Android project
+node_modules/
+android/.gradle/
+android/build/
+android/app/build/
