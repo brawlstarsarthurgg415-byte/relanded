@@ -6,12 +6,16 @@ on:
       - 'Relanded.uproject'
       - 'Source/**'
       - 'Config/**'
+      - 'Content/ThirdParty/**'
+      - 'Tools/**'
       - '.github/workflows/unreal-project-check.yml'
   pull_request:
     paths:
       - 'Relanded.uproject'
       - 'Source/**'
       - 'Config/**'
+      - 'Content/ThirdParty/**'
+      - 'Tools/**'
       - '.github/workflows/unreal-project-check.yml'
   workflow_dispatch:
 
@@ -31,6 +35,13 @@ jobs:
           test -f Source/Relanded/Relanded.cpp
           test -f Source/Relanded/RelandedGameMode.h
           test -f Source/Relanded/RelandedGameMode.cpp
+          test -f Source/Relanded/Survival/RelVitalsComponent.h
+          test -f Source/Relanded/Survival/RelVitalsComponent.cpp
+          test -f Source/Relanded/Survival/RelBodyComponent.h
+          test -f Source/Relanded/Survival/RelBodyComponent.cpp
           test -f Source/Relanded.Target.cs
           test -f Source/RelandedEditor.Target.cs
-          echo "C++ project scaffold: OK"
+          echo "C++ project scaffold and survival components: OK"
+
+      - name: Check third-party asset license manifest
+        run: python3 Tools/check_licenses.py
