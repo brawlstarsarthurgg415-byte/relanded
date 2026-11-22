@@ -4,7 +4,7 @@ Projeto Godot 4.5.1, renderizador Compatibility, exportação Android ARM64.
 
 ## Sistemas implementados
 
-- Ilha 3D com modelos GLB externos baixados durante a compilação (ver `ASSET_SOURCES.md`).
+- Ilha 3D construída com tiles de areia e modelos GLB externos de vegetação, dunas, formações rochosas e caverna, baixados durante a compilação (ver `ASSET_SOURCES.md`).
 - Personagem 3D, câmera em terceira pessoa e controles por toque: lado esquerdo para mover e lado direito para olhar.
 - Sobrevivência: vida, fome, sede, fôlego, temperatura corporal e oxigênio ao mergulhar.
 - Ciclo de dia/noite com iluminação solar dinâmica e alternância de clima.
