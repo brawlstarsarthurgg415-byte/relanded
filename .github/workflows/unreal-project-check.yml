@@ -1,0 +1,36 @@
+name: Unreal project structure check
+
+on:
+  push:
+    paths:
+      - 'Relanded.uproject'
+      - 'Source/**'
+      - 'Config/**'
+      - '.github/workflows/unreal-project-check.yml'
+  pull_request:
+    paths:
+      - 'Relanded.uproject'
+      - 'Source/**'
+      - 'Config/**'
+      - '.github/workflows/unreal-project-check.yml'
+  workflow_dispatch:
+
+jobs:
+  validate-project:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate Unreal project descriptor
+        run: python3 -c "import json; p=json.load(open('Relanded.uproject')); assert p['Modules'][0]['Name']=='Relanded'; print('Unreal project descriptor: OK')"
+
+      - name: Check required C++ project files
+        run: |
+          test -f Source/Relanded/Relanded.Build.cs
+          test -f Source/Relanded/Relanded.cpp
+          test -f Source/Relanded/RelandedGameMode.h
+          test -f Source/Relanded/RelandedGameMode.cpp
+          test -f Source/Relanded.Target.cs
+          test -f Source/RelandedEditor.Target.cs
+          echo "C++ project scaffold: OK"
